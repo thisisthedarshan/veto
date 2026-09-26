@@ -2,14 +2,14 @@
 
 The tracked `docs/` architecture is the build contract. The older local PRD describes a different, larger agent runner; it is background only. Full end-to-end testing is deferred at the user's request. Each completed action below receives a focused micro test and its own commit.
 
-## Phase 0 — contracts and policy decisions
+## Phase 0 — contracts and policy decisions [x]
 
 - [x] Define the exact authorization/result shapes, fingerprint rules, policy configuration, and initial safety defaults.
 - [x] Record resolved policy choices and unresolved Laya/host prerequisites.
 
 Gate: fixed requests and policy settings have deterministic, documented meaning.
 
-## Phase 1 — decision core
+## Phase 1 — decision core [x]
 
 - [x] Implement request validation, canonical action fingerprinting, hard restrictions, and policy resolution.
 - [x] Implement run history, repetition/result accounting, and append-only decisions.
@@ -17,14 +17,14 @@ Gate: fixed requests and policy settings have deterministic, documented meaning.
 
 Gate: fixed classifier answers map to reviewed decisions; VETO never executes an action.
 
-## Phase 2 — MCP gateway and Laya
+## Phase 2 — MCP gateway and Laya [ ]
 
 - [ ] Verify Laya package provenance, license, actual installed MCP tool schema, and pin versions.
 - [ ] Implement VETO MCP tools and Laya client adapter with timeout and response validation.
 
 Gate: a real Laya round trip produces a logged decision; invalid/unavailable answers deny.
 
-## Phase 3 — host proof and evidence
+## Phase 3 — host proof and evidence [ ]
 
 - [ ] Integrate a host with a mandatory pre-action hook and isolated disposable workspace.
 - [ ] Demonstrate safe allow, protected deletion, no-progress repetition, invented path, and cost accounting.
