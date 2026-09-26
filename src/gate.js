@@ -1,3 +1,19 @@
+/*
+ * Copyright 2026 Darshan
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 import { actionFingerprint, validateAuthorizationRequest, validateResultReport } from './contracts.js';
 import { resolveAction } from './policy.js';
 
@@ -9,9 +25,10 @@ function actionKey(request) {
 export class Gate {
   #runs = new Map();
 
-  constructor(policy, provider) {
+  constructor(policy, provider, log = null) {
     this.policy = policy;
     this.provider = provider;
+    this.log = log;
   }
 
   #run(id) {
@@ -38,15 +55,19 @@ export class Gate {
     const history = { actions: run.records.length, replansWithoutProgress, repeatsWithoutProgress };
     // Resolve terminal and hard rules before calling the provider.
     let verdict = resolveAction(request, this.policy, null, history);
+    let classification = null;
+    let classifierDurationMs = null;
     if (verdict.rule === 'classification_invalid') {
-      let classification;
+      const started = performance.now();
       try { classification = await this.provider.classify({ request, history }); }
       catch { classification = null; }
+      classifierDurationMs = performance.now() - started;
       verdict = resolveAction(request, this.policy, classification, history);
     }
-    const record = { fingerprint, key: actionKey(request), request, verdict, result: null };
+    const record = { fingerprint, key: actionKey(request), request, verdict, classification, classifierDurationMs, result: null };
     run.records.push(record);
     run.byRequest.set(request.request_id, record);
+    this.log?.appendDecision(record);
     return verdict;
   }
 
@@ -57,6 +78,7 @@ export class Gate {
     if (record.verdict.decision !== 'ALLOW') throw new Error('cannot report execution for denied action');
     if (record.result) throw new Error('result already reported');
     record.result = report;
+    this.log?.appendResult(report);
     return { recorded: true };
   }
 

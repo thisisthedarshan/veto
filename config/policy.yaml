@@ -1,3 +1,5 @@
+# Copyright 2026 Darshan
+# Licensed under the Apache License, Version 2.0. See LICENSE.
 # VETO demo defaults. Paths are relative to the host's isolated workspace.
 version: "veto-policy-v1"
 allowed_kinds: ["command"]

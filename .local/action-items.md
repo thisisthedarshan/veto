@@ -6,7 +6,7 @@ Check an item only after its implementation and focused micro test pass. Commit 
 - [x] 2. Build the fail-closed policy resolver with focused tests.
 - [x] 2a. Add Apache 2.0 licensing and Darshan attribution.
 - [x] 3. Build state/history, repetition detection, and result reporting with focused tests.
-- [ ] 4. Add append-only decision logging with redaction and focused tests.
+- [x] 4. Add append-only decision logging with redaction, focused tests, and Apache headers in source files.
 - [ ] 5. Verify and integrate Laya through MCP.
 - [ ] 6. Expose VETO MCP server tools.
 - [ ] 7. Integrate a mandatory host hook and isolated demo.
