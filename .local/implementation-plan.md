@@ -17,12 +17,13 @@ Gate: fixed requests and policy settings have deterministic, documented meaning.
 
 Gate: fixed classifier answers map to reviewed decisions; VETO never executes an action.
 
-## Phase 2 — MCP gateway and Laya [ ]
+## Phase 2 — VETO MCP gateway and direct Laya model [ ]
 
-- [ ] Verify Laya package provenance, license, actual installed MCP tool schema, and pin versions.
-- [ ] Implement VETO MCP tools and Laya client adapter with timeout and response validation.
+- [x] Verify Laya package provenance and license, pin its version/checkpoint, and keep downloaded model files under ignored `models/laya/`.
+- [x] Implement a project-local Laya Python worker, Node adapter, timeout, and response validation.
+- [ ] Implement VETO MCP tools for the external host.
 
-Gate: a real Laya round trip produces a logged decision; invalid/unavailable answers deny.
+Gate: a real direct-model Laya round trip produces a logged decision; invalid/unavailable answers deny.
 
 ## Phase 3 — host proof and evidence [ ]
 
