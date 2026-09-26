@@ -43,9 +43,11 @@ function inside(root, path) {
 }
 
 function validateTarget(root, target, name) {
-  if (!target || isAbsolute(target) || target.split(/[\\/]/).includes('..')) throw new Error('Path outside demo workspace');
+  if (!target || isAbsolute(target) || target.split(/[\\/]/).includes('..')) {
+    throw new Error(`Path outside configured workspace: ${root}`);
+  }
   const path = resolve(root, target);
-  if (!inside(root, path)) throw new Error('Path outside demo workspace');
+  if (!inside(root, path)) throw new Error(`Path outside configured workspace: ${root}`);
   const parent = realpathSync(path === root ? root : dirname(path));
   if (!inside(root, parent)) throw new Error('Symlink escapes demo workspace');
   if (existsSync(path)) {
@@ -62,13 +64,13 @@ export function commandRequest(event, config) {
   const workspace = realpathSync(config.workspace);
   if (Array.isArray(event.workspacePaths) &&
       (event.workspacePaths.length !== 1 || realpathSync(event.workspacePaths[0]) !== workspace)) {
-    throw new Error('Only the demo workspace may be mounted');
+    throw new Error(`Active workspace must be ${workspace}`);
   }
   const requestId = createHash('sha256').update(JSON.stringify([event.conversationId, event.stepIdx, tool, args])).digest('hex');
   if (Object.hasOwn(FILE_PATH_FIELD, tool)) {
     const supplied = args?.[FILE_PATH_FIELD[tool]];
     if (typeof supplied !== 'string') throw new Error('File tool target missing');
-    const target = isAbsolute(supplied) ? relative(workspace, supplied) : supplied;
+    const target = isAbsolute(supplied) ? (relative(workspace, supplied) || '.') : supplied;
     validateTarget(workspace, target, tool === 'write_to_file' ? 'touch' : tool);
     const category = WRITE_TOOLS.has(tool) ? 'write' : 'read';
     const frozen = JSON.stringify(args);
@@ -129,7 +131,10 @@ export async function handlePreToolUse(event, { authorize = request => callHookB
     const outcome = evaluateHostVerdict(request, verdict);
     if (outcome.decision !== 'allow') {
       const detail = verdict?.explanation ? ` ${verdict.explanation}` : '';
-      return deny(`${outcome.reason}.${detail} Do not retry by calling authorize_action directly; ask the operator if review is needed.`);
+      const next = verdict?.rule === 'classification_invalid'
+        ? 'Stop this run and restart or repair the VETO MCP server. Operator approval does not override this failure.'
+        : 'Do not retry by calling authorize_action directly; ask the operator if review is needed.';
+      return deny(`${outcome.reason}.${detail} ${next}`);
     }
     const target = request.action.targets[0];
     if (request.action.name === 'rm' && !statSync(resolve(request.action.cwd, target)).isFile()) {

@@ -104,7 +104,8 @@ export function resolveAction(input, policyInput, classification, history = {}) 
   let answer;
   try { answer = validateClassification(classification, policy); }
   catch {
-    return verdict(request, policy, 'DENY', 'manual_review', 'classification_invalid', 'Classifier result unavailable or invalid');
+    return verdict(request, policy, 'DENY', 'stop', 'classification_invalid',
+      'Classifier result unavailable or invalid; restart or repair VETO before retrying');
   }
   if (answer.alignment.choice === 'contradictory') {
     return verdict(request, policy, 'DENY', 'blocked', 'classifier_block', 'Goal-contradicting action');
@@ -116,9 +117,9 @@ export function resolveAction(input, policyInput, classification, history = {}) 
   if (policy.allow_host_validated_read_only_actions &&
       request.metadata?.category === 'read' &&
       READ_ONLY_ACTIONS.has(`${request.action.kind}:${request.action.name}`) &&
-      answer.alignment.choice === 'aligned') {
+      answer.alignment.choice !== 'contradictory') {
     return verdict(request, policy, 'ALLOW', null, 'read_only_allow',
-      'Host-validated read-only action aligned with the goal');
+      'Host-validated read-only action with no detected goal contradiction');
   }
   if (answer.safety.choice === 'destructive') {
     return verdict(request, policy, 'DENY', 'blocked', 'classifier_block', 'Destructive action');

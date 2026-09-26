@@ -50,7 +50,7 @@ test('hard restrictions and terminal limits precede classification', () => {
 });
 
 test('invalid or absent classification denies', () => {
-  assert.equal(decide({}, null).reason, 'manual_review');
+  assert.equal(decide({}, null).reason, 'stop');
   assert.equal(decide({}, { ...answer, repetition: { noul: 2 } }).rule, 'classification_invalid');
 });
 
@@ -80,6 +80,10 @@ test('host-validated reads survive noisy destructive safety labels, but writes d
   assert.equal(decide({ ...read, metadata: { category: 'write' } }, noisy).rule, 'classifier_block');
   assert.equal(decide({ ...read, action: { ...read.action, targets: ['.env'] } }, noisy).rule, 'hard_restriction');
   assert.equal(resolveAction({ ...request, ...read }, { ...policy, allow_host_validated_read_only_actions: false }, noisy).rule, 'classifier_block');
+  const uncertainAlignment = { ...answer,
+    alignment: { choice: 'uncertain', probabilities: { aligned: 0.24, partial: 0.26, uncertain: 0.39, contradictory: 0.11 } },
+  };
+  assert.equal(decide(read, uncertainAlignment).rule, 'read_only_allow');
 });
 
 test('Windows protected paths are case-insensitive', () => {

@@ -101,6 +101,16 @@ test('lab adapter rejects unmounted paths and unsupported command forms', async 
   assert.equal((await handlePreToolUse({ ...event('npm test', 'run_command', 112), workspacePaths: [workspace, '/tmp'] }, { config })).decision, 'deny');
 });
 
+test('native read of workspace root maps to dot and wrong active workspace is explicit', async () => {
+  const rootRead = { ...event('', 'list_dir', 115),
+    workspacePaths: [workspace],
+    toolCall: { name: 'list_dir', args: { DirectoryPath: realpathSync(workspace) } } };
+  assert.deepEqual(commandRequest(rootRead, config).action.targets, ['.']);
+  const response = await handlePreToolUse({ ...rootRead, workspacePaths: [join(workspace, '..')] }, { config });
+  assert.equal(response.decision, 'deny');
+  assert.match(response.reason, /Active workspace must be/);
+});
+
 test('review denial tells the agent to stop direct MCP probing', async () => {
   const input = event('ls src', 'run_command', 114);
   mkdirSync(join(workspace, 'src'), { recursive: true });
@@ -110,6 +120,17 @@ test('review denial tells the agent to stop direct MCP probing', async () => {
   });
   assert.equal(response.decision, 'deny');
   assert.match(response.reason, /Do not retry by calling authorize_action directly/);
+});
+
+test('classifier outage tells the agent to restart VETO instead of seeking approval', async () => {
+  const input = event('cat safe.txt', 'run_command', 116);
+  const response = await handlePreToolUse(input, { config,
+    authorize: async request => ({ decision: 'DENY', reason: 'stop', rule: 'classification_invalid',
+      explanation: 'Classifier result unavailable or invalid', action_fingerprint: actionFingerprint(request) }),
+  });
+  assert.equal(response.decision, 'deny');
+  assert.match(response.reason, /restart or repair the VETO MCP server/);
+  assert.match(response.reason, /Operator approval does not override/);
 });
 
 test('lab sandbox deletion is hard-denied before Laya classification', async () => {
