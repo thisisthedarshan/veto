@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "veto": {
+      "command": "/opt/homebrew/bin/node",
+      "args": ["scripts/veto-mcp-server.js"],
+      "cwd": "/Users/patel/Dev/veto"
+    }
+  }
+}

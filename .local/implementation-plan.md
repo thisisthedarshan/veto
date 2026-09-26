@@ -27,6 +27,7 @@ Gate: a real direct-model Laya round trip produces a logged decision; invalid/un
 
 ## Phase 3 — host proof and evidence [ ]
 
+- [x] Connect the VETO MCP server to Antigravity through workspace configuration and verify tool discovery.
 - [ ] Integrate a host with a mandatory pre-action hook and isolated disposable workspace.
 - [ ] Demonstrate safe allow, protected deletion, no-progress repetition, invented path, and cost accounting.
 - [ ] Run complete tests and document observed evidence when requested.

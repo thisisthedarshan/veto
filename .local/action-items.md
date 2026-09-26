@@ -9,5 +9,6 @@ Check an item only after its implementation and focused micro test pass. Commit 
 - [x] 4. Add append-only decision logging with redaction, focused tests, and Apache headers in source files.
 - [x] 5. Verify and integrate Laya's model directly through a project-local Python worker.
 - [x] 6. Expose VETO MCP server tools to the external host.
+- [x] 6a. Add and verify Antigravity workspace MCP configuration.
 - [ ] 7. Integrate a mandatory host hook and isolated demo.
 - [ ] 8. Capture cost/evaluation evidence and run complete tests later.
