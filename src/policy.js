@@ -19,6 +19,10 @@ import { actionFingerprint, validateAuthorizationRequest, validatePolicy } from 
 
 const SAFETY = new Set(['safe', 'caution', 'dangerous', 'destructive']);
 const ALIGNMENT = new Set(['aligned', 'partial', 'uncertain', 'contradictory']);
+const READ_ONLY_ACTIONS = new Set([
+  'command:ls', 'command:cat',
+  'file:view_file', 'file:list_dir', 'file:find_by_name', 'file:grep_search',
+]);
 
 function probability(value, name) {
   if (!Number.isFinite(value) || value < 0 || value > 1) throw new TypeError(`${name} must be in [0,1]`);
@@ -82,24 +86,42 @@ export function resolveAction(input, policyInput, classification, history = {}) 
   if (actions >= policy.max_actions_per_run || replansWithoutProgress >= policy.max_replans_without_progress) {
     return verdict(request, policy, 'DENY', 'stop', 'limit', 'Run action or replan limit reached');
   }
-  if (!policy.allowed_kinds.includes(request.action.kind) ||
-      !policy.allowed_executables.includes(request.action.name) ||
-      request.action.name.includes('/') ||
-      !deletionTargetsMatch(request.action) ||
-      request.action.targets.some(target => forbiddenTarget(target, policy.protected_paths))) {
-    return verdict(request, policy, 'DENY', 'blocked', 'hard_restriction', 'Action violates configured restrictions');
+  if (!policy.allowed_kinds.includes(request.action.kind)) {
+    return verdict(request, policy, 'DENY', 'blocked', 'hard_restriction',
+      `Unsupported action kind ${request.action.kind}; use the host's pre-tool hook rather than guessing MCP request kinds`);
+  }
+  if (!policy.allowed_executables.includes(request.action.name) || request.action.name.includes('/')) {
+    return verdict(request, policy, 'DENY', 'blocked', 'hard_restriction',
+      `Action name ${request.action.name} is outside the configured allowlist`);
+  }
+  if (!deletionTargetsMatch(request.action)) {
+    return verdict(request, policy, 'DENY', 'blocked', 'hard_restriction', 'Deletion arguments and targets do not match');
+  }
+  if (request.action.targets.some(target => forbiddenTarget(target, policy.protected_paths))) {
+    return verdict(request, policy, 'DENY', 'blocked', 'hard_restriction',
+      'A target is protected or outside the workspace-relative path boundary');
   }
   let answer;
   try { answer = validateClassification(classification, policy); }
   catch {
     return verdict(request, policy, 'DENY', 'manual_review', 'classification_invalid', 'Classifier result unavailable or invalid');
   }
-  if (answer.safety.choice === 'destructive' || answer.alignment.choice === 'contradictory') {
-    return verdict(request, policy, 'DENY', 'blocked', 'classifier_block', 'Destructive or goal-contradicting action');
+  if (answer.alignment.choice === 'contradictory') {
+    return verdict(request, policy, 'DENY', 'blocked', 'classifier_block', 'Goal-contradicting action');
   }
   if (repeatsWithoutProgress >= policy.repeat_without_progress_limit ||
       (answer.repetition.noul > policy.repetition_probability_threshold && answer.progress.score <= policy.low_progress_max)) {
     return verdict(request, policy, 'DENY', 'replan', 'no_progress', 'Repeated action without sufficient progress');
+  }
+  if (policy.allow_host_validated_read_only_actions &&
+      request.metadata?.category === 'read' &&
+      READ_ONLY_ACTIONS.has(`${request.action.kind}:${request.action.name}`) &&
+      answer.alignment.choice === 'aligned') {
+    return verdict(request, policy, 'ALLOW', null, 'read_only_allow',
+      'Host-validated read-only action aligned with the goal');
+  }
+  if (answer.safety.choice === 'destructive') {
+    return verdict(request, policy, 'DENY', 'blocked', 'classifier_block', 'Destructive action');
   }
   if (answer.uncertain || answer.safety.choice === 'dangerous' ||
       (policy.manual_review_categories.includes(request.metadata?.category) && answer.alignment.choice !== 'aligned')) {

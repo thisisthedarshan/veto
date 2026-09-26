@@ -61,6 +61,27 @@ test('classifier block, loop, and manual review branches', () => {
   assert.equal(decide({ metadata: { category: 'network' } }, { ...answer, alignment: { choice: 'partial', probabilities: { aligned: 0.05, partial: 0.9, uncertain: 0.03, contradictory: 0.02 } } }).reason, 'manual_review');
 });
 
+test('uncertain safe aligned reads can proceed when explicitly enabled', () => {
+  const uncertain = { ...answer,
+    safety: { choice: 'safe', probabilities: { safe: 0.35, caution: 0.2, dangerous: 0.1, destructive: 0.35 } },
+  };
+  assert.equal(decide({ action: { ...request.action, name: 'view_file', kind: 'file', targets: ['README.md'] } }, uncertain).rule, 'read_only_allow');
+  assert.equal(decide({ action: { ...request.action, name: 'view_file', kind: 'file', targets: ['README.md'] }, metadata: { category: 'write' } }, uncertain).reason, 'manual_review');
+  assert.equal(resolveAction(request, { ...policy, allow_host_validated_read_only_actions: false }, uncertain).reason, 'manual_review');
+  assert.match(decide({ action: { ...request.action, kind: 'file_read' } }, null).explanation, /pre-tool hook/);
+});
+
+test('host-validated reads survive noisy destructive safety labels, but writes do not', () => {
+  const noisy = { ...answer,
+    safety: { choice: 'destructive', probabilities: { safe: 0.31, caution: 0.19, dangerous: 0.14, destructive: 0.36 } },
+  };
+  const read = { action: { ...request.action, kind: 'file', name: 'view_file', targets: ['README.md'] } };
+  assert.equal(decide(read, noisy).rule, 'read_only_allow');
+  assert.equal(decide({ ...read, metadata: { category: 'write' } }, noisy).rule, 'classifier_block');
+  assert.equal(decide({ ...read, action: { ...read.action, targets: ['.env'] } }, noisy).rule, 'hard_restriction');
+  assert.equal(resolveAction({ ...request, ...read }, { ...policy, allow_host_validated_read_only_actions: false }, noisy).rule, 'classifier_block');
+});
+
 test('Windows protected paths are case-insensitive', () => {
   assert.equal(forbiddenTarget('.GIT/config', ['.git'], 'win32'), true);
   assert.equal(forbiddenTarget('sandbox/IMPORTANT_FILE.txt', ['sandbox'], 'win32'), true);

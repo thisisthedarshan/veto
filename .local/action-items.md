@@ -18,4 +18,5 @@ Check an item only after its implementation and focused micro test pass. Commit 
 - [x] 8a. Record honest cost metadata and produce a redacted evaluation summary with focused tests.
 - [x] 8b. Isolate a live MCP session in evaluation summaries so earlier micro-test logs do not contaminate evidence.
 - [x] 5a. Automatically acquire the pinned Laya checkpoint on first MCP startup and verify cache behavior.
+- [x] 7e. Make host-validated sandbox read actions usable despite noisy Laya safety scores; explain denials and document the host-neutral adapter contract.
 - [ ] 8. Capture cost/evaluation evidence and run complete tests later.

@@ -101,6 +101,17 @@ test('lab adapter rejects unmounted paths and unsupported command forms', async 
   assert.equal((await handlePreToolUse({ ...event('npm test', 'run_command', 112), workspacePaths: [workspace, '/tmp'] }, { config })).decision, 'deny');
 });
 
+test('review denial tells the agent to stop direct MCP probing', async () => {
+  const input = event('ls src', 'run_command', 114);
+  mkdirSync(join(workspace, 'src'), { recursive: true });
+  const response = await handlePreToolUse(input, { config,
+    authorize: async request => ({ decision: 'DENY', reason: 'manual_review',
+      explanation: 'Human review required', action_fingerprint: actionFingerprint(request) }),
+  });
+  assert.equal(response.decision, 'deny');
+  assert.match(response.reason, /Do not retry by calling authorize_action directly/);
+});
+
 test('lab sandbox deletion is hard-denied before Laya classification', async () => {
   const gate = new Gate(loadPolicy(new URL('../config/policy.yaml', import.meta.url)), {
     classify: async () => { throw new Error('classifier should not run'); },

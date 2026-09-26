@@ -12,3 +12,6 @@ repetition_probability_threshold: 0.7
 low_progress_max: 0.35
 minimum_choice_margin: 0.15
 manual_review_categories: ["network", "delete"]
+# Trust the host to prove these named tools are read-only; VETO still checks paths,
+# repetition, and goal alignment. Disable if the host cannot enforce that mapping.
+allow_host_validated_read_only_actions: true

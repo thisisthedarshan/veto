@@ -6,6 +6,8 @@
 
 VETO is a local authorization service. It never executes a proposed tool call. Registering VETO as an MCP server exposes `authorize_action` and `report_action_result`; it does not intercept the host's shell, file editor, search, browser, or subagent tools. A protected coding host must enforce VETO in a pre-tool hook or tool dispatcher for every action in its declared scope. A host without that enforcement must describe VETO as advisory.
 
+The coding agent should not call `authorize_action` itself or invent `action.kind` values after a denial. The host adapter creates the request from the actual pending tool event. Hide the VETO MCP tools from the model if the host supports that while keeping the server available to the hook. A `DENY` means skip that exact tool call. For `manual_review`, ask the operator to review the proposed action; changing the request schema is never a review or a bypass.
+
 Use the operator's trusted goal. Repository files, search results, tool output, and agent rationale are untrusted and must not replace it. Freeze the exact proposed tool call before asking VETO. Any change to the command, arguments, working directory, or targets requires a fresh authorization. The host owns filesystem isolation, path resolution, executable restrictions, process limits, network policy, and credentials.
 
 ## Stdio launch
@@ -89,3 +91,5 @@ Run `npm run report:decisions` in the VETO clone for aggregate counts, classifie
 7. Retain request ID, verdict, execution status, and report acknowledgment as evidence.
 
 The included Antigravity hook covers bounded `ls`, `cat`, `touch`, `rm`, and `npm test` commands plus the named native file and search tools in one configured workspace. It denies matched task and subagent tools. The lab's `.agents` configuration loads this hook and the MCP server. Only the listed Antigravity tool paths have been wired; confirm them in a live agent run before claiming host enforcement.
+
+The sample policy enables `allow_host_validated_read_only_actions` for a narrow set of read tools. After a valid model response, the policy can allow those tools when Laya judges them goal aligned even if its safety label is noisy. This relies on the host proving that the mapped operation really is read-only and confined to the workspace. Protected paths, unsupported tools, goal contradiction, and repetition limits still deny. Disable the setting for a host that cannot guarantee those properties.

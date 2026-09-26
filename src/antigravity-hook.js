@@ -127,7 +127,10 @@ export async function handlePreToolUse(event, { authorize = request => callHookB
     const request = commandRequest(event, selected);
     const verdict = await authorize(request);
     const outcome = evaluateHostVerdict(request, verdict);
-    if (outcome.decision !== 'allow') return outcome;
+    if (outcome.decision !== 'allow') {
+      const detail = verdict?.explanation ? ` ${verdict.explanation}` : '';
+      return deny(`${outcome.reason}.${detail} Do not retry by calling authorize_action directly; ask the operator if review is needed.`);
+    }
     const target = request.action.targets[0];
     if (request.action.name === 'rm' && !statSync(resolve(request.action.cwd, target)).isFile()) {
       return deny('Host only permits deleting regular files');
