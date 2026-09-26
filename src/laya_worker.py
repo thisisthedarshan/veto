@@ -23,7 +23,7 @@ from model_cache import ensure_model
 if metadata.version("laya") != "0.3.20":
     raise RuntimeError("VETO requires laya==0.3.20")
 
-snapshot = ensure_model()
+snapshot = str(ensure_model())
 
 from laya import Router  # noqa: E402 - cache variables must be set first
 from model_cache import MODEL_CONFIG  # noqa: E402
