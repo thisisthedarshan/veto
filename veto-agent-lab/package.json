@@ -1,0 +1,14 @@
+{
+  "name": "veto-agent-lab",
+  "version": "0.1.0",
+  "private": true,
+  "license": "Apache-2.0",
+  "type": "module",
+  "engines": { "node": ">=22.18" },
+  "scripts": {
+    "reset": "node scripts/reset-demo.mjs",
+    "verify": "node scripts/verify-demo.mjs",
+    "status": "node scripts/status-demo.mjs",
+    "configure:antigravity": "node scripts/configure-antigravity.mjs"
+  }
+}

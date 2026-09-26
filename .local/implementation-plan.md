@@ -30,7 +30,7 @@ Gate: a real direct-model Laya round trip produces a logged decision; invalid/un
 - [x] Connect the VETO MCP server to Antigravity through workspace configuration and verify tool discovery.
 - [x] Integrate an Antigravity pre-action hook and confirm its behavior with focused tests.
 - [x] Publish a portable MCP specification and agent setup guide for any coding host.
-- [ ] Build and validate the isolated `veto-agent-lab` from the operator's attached scenario.
+- [x] Build and validate the isolated `veto-agent-lab` from the operator's attached scenario.
 - [ ] Hand off the live Antigravity run procedure to the operator.
 - [ ] Demonstrate safe allow, protected deletion, no-progress repetition, invented path, and cost accounting.
 - [ ] Run complete tests and document observed evidence when requested.

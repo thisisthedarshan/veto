@@ -1,0 +1,28 @@
+{
+  "veto-agent-lab-gate": {
+    "PreToolUse": [
+      {
+        "matcher": "run_command|view_file|write_to_file|replace_file_content|multi_replace_file_content|list_dir|find_by_name|grep_search|manage_task|invoke_subagent|define_subagent|manage_subagents",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "'/opt/homebrew/Cellar/node/25.8.1_1/bin/node' '/Users/patel/Dev/veto/scripts/antigravity-hook.js' pre",
+            "timeout": 180
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "run_command|view_file|write_to_file|replace_file_content|multi_replace_file_content|list_dir|find_by_name|grep_search",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "'/opt/homebrew/Cellar/node/25.8.1_1/bin/node' '/Users/patel/Dev/veto/scripts/antigravity-hook.js' post",
+            "timeout": 30
+          }
+        ]
+      }
+    ]
+  }
+}

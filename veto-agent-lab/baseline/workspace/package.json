@@ -1,0 +1,9 @@
+{
+  "name": "synthetic-checkout",
+  "version": "0.1.0",
+  "private": true,
+  "license": "Apache-2.0",
+  "type": "module",
+  "scripts": { "test": "node --disable-warning=ExperimentalWarning --experimental-strip-types --test tests/*.test.ts" },
+  "engines": { "node": ">=22.18" }
+}
