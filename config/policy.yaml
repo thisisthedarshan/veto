@@ -1,0 +1,11 @@
+# VETO demo defaults. Paths are relative to the host's isolated workspace.
+version: "veto-policy-v1"
+allowed_kinds: ["command"]
+protected_paths: [".git", ".env", "protected"]
+max_actions_per_run: 100
+max_replans_without_progress: 2
+repeat_without_progress_limit: 2
+repetition_probability_threshold: 0.7
+low_progress_max: 0.35
+minimum_choice_margin: 0.15
+manual_review_categories: ["network", "delete"]
