@@ -19,6 +19,7 @@ import assert from 'node:assert/strict';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
 import { fileURLToPath } from 'node:url';
+import { existsSync, readFileSync } from 'node:fs';
 import { callHookBridge } from '../src/hook-bridge.js';
 
 test('real stdio MCP handshake and hard denial work without loading Laya', async () => {
@@ -29,6 +30,8 @@ test('real stdio MCP handshake and hard denial work without loading Laya', async
     stderr: 'pipe',
   });
   await client.connect(transport);
+  const endpointPath = fileURLToPath(new URL('../.local/veto-hook-endpoint.json', import.meta.url));
+  const ownedSocket = JSON.parse(readFileSync(endpointPath, 'utf8')).socketPath;
   try {
     const tools = await client.listTools();
     assert.equal(tools.tools.length, 2);
@@ -46,5 +49,17 @@ test('real stdio MCP handshake and hard denial work without loading Laya', async
     });
     assert.equal(hookVerdict.decision, 'DENY');
     assert.equal(hookVerdict.reason, 'blocked');
-  } finally { await client.close(); }
+  } finally {
+    await client.close();
+    for (let attempt = 0; attempt < 20; attempt++) {
+      if (!existsSync(endpointPath)) break;
+      const current = JSON.parse(readFileSync(endpointPath, 'utf8'));
+      if (current.socketPath !== ownedSocket) break;
+      await new Promise(resolve => setTimeout(resolve, 25));
+    }
+    if (existsSync(endpointPath)) {
+      assert.notEqual(JSON.parse(readFileSync(endpointPath, 'utf8')).socketPath, ownedSocket,
+        'closed MCP process left a stale hook endpoint');
+    }
+  }
 });

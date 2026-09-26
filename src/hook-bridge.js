@@ -59,9 +59,17 @@ export async function startHookBridge(gate) {
   const temp = `${ENDPOINT}.${process.pid}`;
   writeFileSync(temp, JSON.stringify({ socketPath, token }), { mode: 0o600 });
   renameSync(temp, ENDPOINT);
-  process.once('exit', () => {
+  const cleanup = () => {
     if (process.platform !== 'win32') try { unlinkSync(socketPath); } catch {}
-  });
+    try {
+      const active = JSON.parse(readFileSync(ENDPOINT, 'utf8'));
+      if (active.socketPath === socketPath) unlinkSync(ENDPOINT);
+    } catch {}
+  };
+  process.once('exit', cleanup);
+  for (const signal of ['SIGINT', 'SIGTERM']) {
+    process.once(signal, () => { cleanup(); process.exit(0); });
+  }
   return server;
 }
 

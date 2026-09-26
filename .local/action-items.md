@@ -22,4 +22,5 @@ Check an item only after its implementation and focused micro test pass. Commit 
 - [x] 7f. Accept the configured workspace root as a read target, expose active-workspace mismatches, and stop on classifier outages without seeking a chat approval bypass.
 - [x] 7g. Run VETO from a Codex MCP session, reproduce connection behavior, and isolate MCP-only clients from the shared hook endpoint.
 - [x] 7h. Recover once from an unexpected local Laya worker exit and verify real MCP model liveness.
+- [x] 7i. Remove the hook endpoint manifest when its owning MCP process exits, then verify bridge lifecycle.
 - [ ] 8. Capture cost/evaluation evidence and run complete tests later.
