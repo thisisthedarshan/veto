@@ -11,7 +11,7 @@ Check an item only after its implementation and focused micro test pass. Commit 
 - [x] 6. Expose VETO MCP server tools to the external host.
 - [x] 6a. Add and verify Antigravity workspace MCP configuration.
 - [x] 7. Integrate an Antigravity pre-action hook with exact command binding and focused tests.
-- [ ] 7a. Document portable MCP setup and the host enforcement contract for coding agents.
+- [x] 7a. Document portable MCP setup and the host enforcement contract for coding agents.
 - [ ] 7b. Build the reusable synthetic veto-agent-lab with reset, verify, and status commands.
 - [ ] 7c. Provide the operator's Antigravity connection and live test procedure.
 - [ ] 8. Capture cost/evaluation evidence and run complete tests later.
