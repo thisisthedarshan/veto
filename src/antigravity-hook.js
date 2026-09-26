@@ -18,8 +18,8 @@ import { createHash } from 'node:crypto';
 import { existsSync, lstatSync, readFileSync, realpathSync, statSync, writeFileSync, mkdirSync, unlinkSync } from 'node:fs';
 import { dirname, isAbsolute, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { actionFingerprint } from './contracts.js';
 import { callHookBridge } from './hook-bridge.js';
+import { evaluateHostVerdict } from './host-gate.js';
 
 const CONFIG = fileURLToPath(new URL('../.local/antigravity-demo.json', import.meta.url));
 const PENDING = fileURLToPath(new URL('../.local/antigravity-pending', import.meta.url));
@@ -126,8 +126,8 @@ export async function handlePreToolUse(event, { authorize = request => callHookB
     if (typeof event?.conversationId !== 'string' || !Number.isSafeInteger(event.stepIdx)) throw new Error('Antigravity hook metadata missing');
     const request = commandRequest(event, selected);
     const verdict = await authorize(request);
-    if (verdict?.decision !== 'ALLOW') return deny(`VETO: ${verdict?.reason ?? 'authorization unavailable'}`);
-    if (verdict.action_fingerprint !== actionFingerprint(request)) return deny('VETO fingerprint mismatch');
+    const outcome = evaluateHostVerdict(request, verdict);
+    if (outcome.decision !== 'allow') return outcome;
     const target = request.action.targets[0];
     if (request.action.name === 'rm' && !statSync(resolve(request.action.cwd, target)).isFile()) {
       return deny('Host only permits deleting regular files');

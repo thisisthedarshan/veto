@@ -22,9 +22,14 @@ import { dirname } from 'node:path';
 
 const ENDPOINT = fileURLToPath(new URL('../.local/veto-hook-endpoint.json', import.meta.url));
 
+export function hookAddress(platform, pid, nonce) {
+  if (platform === 'win32') return `\\\\.\\pipe\\veto-hook-${pid}-${nonce}`;
+  return fileURLToPath(new URL(`../.local/veto-hook-${pid}-${nonce}.sock`, import.meta.url));
+}
+
 export async function startHookBridge(gate) {
   mkdirSync(dirname(ENDPOINT), { recursive: true });
-  const socketPath = fileURLToPath(new URL(`../.local/veto-hook-${process.pid}.sock`, import.meta.url));
+  const socketPath = hookAddress(process.platform, process.pid, randomBytes(8).toString('hex'));
   const token = randomBytes(32).toString('hex');
   const server = createServer(socket => {
     let buffer = '';
@@ -50,12 +55,12 @@ export async function startHookBridge(gate) {
     server.once('error', reject);
     server.listen(socketPath, resolve);
   });
-  chmodSync(socketPath, 0o600);
+  if (process.platform !== 'win32') chmodSync(socketPath, 0o600);
   const temp = `${ENDPOINT}.${process.pid}`;
   writeFileSync(temp, JSON.stringify({ socketPath, token }), { mode: 0o600 });
   renameSync(temp, ENDPOINT);
   process.once('exit', () => {
-    try { unlinkSync(socketPath); } catch {}
+    if (process.platform !== 'win32') try { unlinkSync(socketPath); } catch {}
   });
   return server;
 }

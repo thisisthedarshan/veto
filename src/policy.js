@@ -47,10 +47,15 @@ export function validateClassification(input, policy) {
   return { ...input, uncertain: safetyUncertain || alignmentUncertain };
 }
 
-function forbiddenTarget(target, protectedPaths) {
+export function forbiddenTarget(target, protectedPaths, platform = process.platform) {
   const normalized = path.normalize(target.replaceAll('\\', '/'));
-  if (path.isAbsolute(normalized) || normalized === '..' || normalized.startsWith('../')) return true;
-  return protectedPaths.some(protectedPath => normalized === protectedPath || normalized.startsWith(`${protectedPath}/`));
+  if (path.isAbsolute(normalized) || /^[A-Za-z]:\//.test(normalized) || normalized.startsWith('//') ||
+      normalized === '..' || normalized.startsWith('../')) return true;
+  const key = platform === 'win32' ? normalized.toLowerCase() : normalized;
+  return protectedPaths.some(protectedPath => {
+    const protectedKey = platform === 'win32' ? protectedPath.toLowerCase() : protectedPath;
+    return key === protectedKey || key.startsWith(`${protectedKey}/`);
+  });
 }
 
 function deletionTargetsMatch(action) {

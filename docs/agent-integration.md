@@ -18,13 +18,13 @@ npm run mcp:config
 
 The last command prints a machine-specific `mcpServers` JSON object with absolute Node, server, and clone paths. Add its `veto` entry to the coding tool's local stdio MCP configuration. Hosts with another configuration format need the same `command`, `args`, and `cwd`. Restart or refresh MCP servers and confirm that `authorize_action` and `report_action_result` appear.
 
-The supplied Python worker path is `.local/venv/bin/python`, so the current launcher targets Unix-like systems. Windows hosts need to set the worker path for their virtual environment before using live classification.
+On Windows PowerShell, use `py -3.12 -m venv .local\\venv`, then `.\\.local\\venv\\Scripts\\python.exe -m pip install -r config\\laya-requirements.txt` and `.\\.local\\venv\\Scripts\\python.exe scripts\\install-laya-model.py`. The Node launcher selects this Python path automatically. The local hook bridge uses a Windows named pipe. The implementation has been tested on macOS; Linux and Windows still need a live host run.
 
 ## Install host-side enforcement
 
 MCP registration only makes VETO available. It does **not** govern the host's shell, editor, file, browser, background-task, or subagent tools. Add a pre-tool hook or dispatcher wrapper covering every action in the protected scope. Freeze the real tool call, send it to `authorize_action`, verify `ALLOW` and the returned fingerprint, then execute the frozen call exactly once. Skip execution on DENY, timeout, invalid response, or changed arguments. Report the actual outcome through `report_action_result`.
 
-An instruction asking the agent to call VETO voluntarily is insufficient: the agent can still use a direct tool. If the host has no enforceable pre-tool hook, describe the MCP setup as advisory. [The MCP host specification](mcp-host-spec.md) defines the exact schemas, fingerprint, host sequence, and error behavior. Review the user-editable [policy](../config/policy.yaml) for the workspace before a live run. Unknown or malformed policy settings fail startup.
+An instruction asking the agent to call VETO voluntarily is insufficient: the agent can still use a direct tool. If the host has no enforceable pre-tool hook, describe the MCP setup as advisory. For a host with command hooks, `scripts/veto-host-gate.js` accepts a normalized authorization or result JSON object on stdin and talks to the running VETO process. Only the event-to-request mapping and host decision adapter are host-specific. [The MCP host specification](mcp-host-spec.md) defines the exact schemas, fingerprint, host sequence, and error behavior. Review the user-editable [policy](../config/policy.yaml) for the workspace before a live run. Unknown or malformed policy settings fail startup.
 
 ## Antigravity's focused hook
 

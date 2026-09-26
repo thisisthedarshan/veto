@@ -32,6 +32,8 @@ Gate: a real direct-model Laya round trip produces a logged decision; invalid/un
 - [x] Publish a portable MCP specification and agent setup guide for any coding host.
 - [x] Build and validate the isolated `veto-agent-lab` from the operator's attached scenario.
 - [x] Hand off the live Antigravity run procedure to the operator.
+- [x] Generalize the hook client contract and unit-test platform-specific paths and local IPC choices.
+- [ ] Validate Antigravity hooks and direct Laya inference on Linux and Windows hosts when available.
 - [ ] Demonstrate safe allow, protected deletion, no-progress repetition, invented path, and cost accounting.
 - [ ] Run complete tests and document observed evidence when requested.
 

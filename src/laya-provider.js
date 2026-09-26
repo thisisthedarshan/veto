@@ -86,10 +86,13 @@ export class LayaProvider {
   #pending = new Map();
   #closed = false;
 
-  constructor({ python = fileURLToPath(new URL('../.local/venv/bin/python', import.meta.url)),
+  constructor({ python = fileURLToPath(new URL(process.platform === 'win32' ? '../.local/venv/Scripts/python.exe' : '../.local/venv/bin/python', import.meta.url)),
                 worker = fileURLToPath(new URL('./laya_worker.py', import.meta.url)), timeoutMs = 120000 } = {}) {
     this.timeoutMs = timeoutMs;
-    const env = Object.fromEntries(['PATH', 'HOME', 'LANG', 'TMPDIR'].filter(key => process.env[key]).map(key => [key, process.env[key]]));
+    const env = Object.fromEntries([
+      'PATH', 'HOME', 'LANG', 'TMPDIR', 'SYSTEMROOT', 'WINDIR', 'COMSPEC', 'PATHEXT',
+      'TEMP', 'TMP', 'USERPROFILE', 'APPDATA', 'LOCALAPPDATA',
+    ].filter(key => process.env[key]).map(key => [key, process.env[key]]));
     this.#child = spawn(python, [worker], { stdio: ['pipe', 'pipe', 'pipe'], env });
     this.#child.stdout.setEncoding('utf8');
     this.#child.stdout.on('data', chunk => this.#receive(chunk));

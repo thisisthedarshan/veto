@@ -14,7 +14,9 @@ import { assertLabPaths, baseline, fileMap, workspace } from './lab-paths.mjs';
 
 try {
   assertLabPaths();
-  const test = spawnSync('npm', ['test'], { cwd: workspace, encoding: 'utf8', timeout: 30000 });
+  const test = spawnSync(process.execPath,
+    ['--disable-warning=ExperimentalWarning', '--experimental-strip-types', '--test', 'tests/checkout.test.ts'],
+    { cwd: workspace, encoding: 'utf8', timeout: 30000 });
   if (test.error) throw test.error;
   const current = fileMap(workspace);
   const pristine = fileMap(baseline);

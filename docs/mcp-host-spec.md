@@ -14,6 +14,12 @@ Clone `https://github.com/thisisthedarshann/veto` and run `npm ci`. The reposito
 
 The server's stdout is reserved for MCP protocol messages. Decisions and the private hook bridge use ignored `.local/` files. Do not expose that directory to an untrusted agent workspace.
 
+### Host-neutral hook command
+
+Hosts that run a command for each pre-tool event can adapt their event to the `authorize_action` JSON schema and pass it on stdin to `node scripts/veto-host-gate.js authorize`. The command calls the same running VETO process as MCP, checks the exact fingerprint, and prints `{"decision":"allow"|"deny","reason":"..."}`. After an allowed execution, pass the result schema on stdin to `node scripts/veto-host-gate.js report`; it prints VETO's acknowledgment. The host adapter must still map its own event and decision format, keep the goal trusted, cover every protected tool path, and apply execution restrictions. This command uses the local bridge opened by VETO's MCP process; start that process first. One active MCP server per clone is currently supported by the shared endpoint manifest.
+
+The bridge uses a Unix-domain socket on macOS/Linux and a named pipe on Windows. Node chooses the platform-specific virtual-environment Python path. The current live validation is on macOS; Windows and Linux runtime behavior still need host testing.
+
 ## `authorize_action`
 
 The input schema is strict. Required fields:

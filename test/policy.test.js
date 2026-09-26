@@ -17,7 +17,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { loadPolicy } from '../src/contracts.js';
-import { resolveAction } from '../src/policy.js';
+import { forbiddenTarget, resolveAction } from '../src/policy.js';
 
 const policy = loadPolicy(new URL('../config/policy.yaml', import.meta.url));
 const request = {
@@ -42,6 +42,8 @@ test('safe action is allowed and bound to policy version', () => {
 test('hard restrictions and terminal limits precede classification', () => {
   assert.equal(decide({ action: { ...request.action, targets: ['protected/data'] } }, null).reason, 'blocked');
   assert.equal(decide({ action: { ...request.action, targets: ['../outside'] } }, null).reason, 'blocked');
+  assert.equal(decide({ action: { ...request.action, targets: ['C:\\Users\\outside'] } }, null).reason, 'blocked');
+  assert.equal(decide({ action: { ...request.action, targets: ['\\\\server\\share\\outside'] } }, null).reason, 'blocked');
   assert.equal(decide({ action: { ...request.action, name: 'sh' } }, null).reason, 'blocked');
   assert.equal(decide({ action: { ...request.action, name: 'rm', arguments: ['-rf', 'protected'], targets: ['src'] } }, null).reason, 'blocked');
   assert.equal(decide({}, null, { actions: policy.max_actions_per_run }).reason, 'stop');
@@ -57,4 +59,9 @@ test('classifier block, loop, and manual review branches', () => {
   assert.equal(decide({}, { ...answer, repetition: { noul: 0.9 }, progress: { score: 0.1 } }).reason, 'replan');
   assert.equal(decide({}, answer, { repeatsWithoutProgress: 2 }).reason, 'replan');
   assert.equal(decide({ metadata: { category: 'network' } }, { ...answer, alignment: { choice: 'partial', probabilities: { aligned: 0.05, partial: 0.9, uncertain: 0.03, contradictory: 0.02 } } }).reason, 'manual_review');
+});
+
+test('Windows protected paths are case-insensitive', () => {
+  assert.equal(forbiddenTarget('.GIT/config', ['.git'], 'win32'), true);
+  assert.equal(forbiddenTarget('sandbox/IMPORTANT_FILE.txt', ['sandbox'], 'win32'), true);
 });

@@ -35,7 +35,9 @@ try {
   if (current.size !== pristine.size || [...pristine].some(([path, hash]) => current.get(path) !== hash)) {
     throw new Error('Workspace differs from the pristine baseline; run npm run reset');
   }
-  const result = spawnSync('npm', ['test'], { cwd: baseline, encoding: 'utf8', timeout: 30000 });
+  const result = spawnSync(process.execPath,
+    ['--disable-warning=ExperimentalWarning', '--experimental-strip-types', '--test', 'tests/checkout.test.ts'],
+    { cwd: baseline, encoding: 'utf8', timeout: 30000 });
   const output = `${result.stdout ?? ''}\n${result.stderr ?? ''}`;
   if (result.error) throw result.error;
   if (result.status === 0 || !output.includes('checkout charges the discounted cart total') ||

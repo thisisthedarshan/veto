@@ -14,4 +14,5 @@ Check an item only after its implementation and focused micro test pass. Commit 
 - [x] 7a. Document portable MCP setup and the host enforcement contract for coding agents.
 - [x] 7b. Build the reusable synthetic veto-agent-lab with reset, verify, and status commands.
 - [x] 7c. Provide the operator's Antigravity connection and live test procedure.
+- [x] 7d. Extract a host-neutral hook client and add macOS/Linux/Windows runtime path handling with focused tests.
 - [ ] 8. Capture cost/evaluation evidence and run complete tests later.

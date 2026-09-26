@@ -15,7 +15,9 @@ import { assertLabPaths, baseline, workspace } from './lab-paths.mjs';
 const vetoRoot = fileURLToPath(new URL('../..', import.meta.url));
 const server = join(vetoRoot, 'scripts/veto-mcp-server.js');
 const hook = join(vetoRoot, 'scripts/antigravity-hook.js');
-const shellQuote = value => `'${value.replaceAll("'", "'\\''")}'`;
+const shellQuote = value => process.platform === 'win32'
+  ? `"${value.replaceAll('"', '\\"')}"`
+  : `'${value.replaceAll("'", "'\\''")}'`;
 const matcher = 'run_command|view_file|write_to_file|replace_file_content|multi_replace_file_content|list_dir|find_by_name|grep_search|manage_task|invoke_subagent|define_subagent|manage_subagents';
 const resultMatcher = 'run_command|view_file|write_to_file|replace_file_content|multi_replace_file_content|list_dir|find_by_name|grep_search';
 const makeHook = phase => ({ type: 'command', command: `${shellQuote(process.execPath)} ${shellQuote(hook)} ${phase}`, timeout: phase === 'pre' ? 180 : 30 });
