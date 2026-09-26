@@ -53,6 +53,7 @@ export function validateAuthorizationRequest(input) {
   string(action.kind, 'action.kind');
   string(action.name, 'action.name');
   string(action.cwd, 'action.cwd');
+  if (action.raw_command !== undefined) string(action.raw_command, 'action.raw_command');
   if (!Array.isArray(action.arguments) || !action.arguments.every(v => typeof v === 'string')) {
     throw new TypeError('action.arguments must be a string array');
   }

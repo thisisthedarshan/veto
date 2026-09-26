@@ -2,9 +2,9 @@
 # Licensed under the Apache License, Version 2.0. See LICENSE.
 # VETO demo defaults. Paths are relative to the host's isolated workspace.
 version: "veto-policy-v1"
-allowed_kinds: ["command"]
-allowed_executables: ["ls", "cat", "sed", "touch", "rm", "npm", "node"]
-protected_paths: [".git", ".env", "protected"]
+allowed_kinds: ["command", "file"]
+allowed_executables: ["ls", "cat", "sed", "touch", "rm", "npm", "node", "view_file", "list_dir", "find_by_name", "grep_search", "write_to_file", "replace_file_content", "multi_replace_file_content"]
+protected_paths: [".git", ".env", ".agents", "protected", "sandbox"]
 max_actions_per_run: 100
 max_replans_without_progress: 2
 repeat_without_progress_limit: 2

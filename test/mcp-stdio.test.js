@@ -19,6 +19,7 @@ import assert from 'node:assert/strict';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
 import { fileURLToPath } from 'node:url';
+import { callHookBridge } from '../src/hook-bridge.js';
 
 test('real stdio MCP handshake and hard denial work without loading Laya', async () => {
   const client = new Client({ name: 'veto-stdio-test', version: '1.0.0' });
@@ -38,5 +39,12 @@ test('real stdio MCP handshake and hard denial work without loading Laya', async
     } });
     assert.equal(result.structuredContent.decision, 'DENY');
     assert.equal(result.structuredContent.reason, 'blocked');
+    const hookVerdict = await callHookBridge('authorize', {
+      run_id: 'bridge-test', request_id: 'blocked-sandbox', goal: 'Fix checkout',
+      action: { kind: 'command', name: 'rm', arguments: ['-rf', './sandbox'], cwd: '/demo', targets: ['./sandbox'], raw_command: 'rm -rf ./sandbox' },
+      metadata: { category: 'delete' },
+    });
+    assert.equal(hookVerdict.decision, 'DENY');
+    assert.equal(hookVerdict.reason, 'blocked');
   } finally { await client.close(); }
 });

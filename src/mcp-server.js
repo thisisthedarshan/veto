@@ -22,6 +22,7 @@ import { Gate } from './gate.js';
 import { loadPolicy } from './contracts.js';
 import { DecisionLog } from './decision-log.js';
 import { LayaProvider } from './laya-provider.js';
+import { startHookBridge } from './hook-bridge.js';
 
 const actionSchema = z.object({
   kind: z.string().min(1),
@@ -29,6 +30,7 @@ const actionSchema = z.object({
   arguments: z.array(z.string()),
   cwd: z.string().min(1),
   targets: z.array(z.string().min(1)),
+  raw_command: z.string().min(1).optional(),
 }).strict();
 
 const authorizationSchema = z.object({
@@ -71,6 +73,7 @@ export async function serveStdio() {
   const provider = new LayaProvider();
   const logPath = fileURLToPath(new URL('../.local/decisions.jsonl', import.meta.url));
   const gate = new Gate(policy, provider, new DecisionLog(logPath));
+  await startHookBridge(gate);
   const server = createVetoMcpServer(gate);
   process.on('exit', () => provider.close());
   await server.connect(new StdioServerTransport());
