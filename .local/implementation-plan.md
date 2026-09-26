@@ -12,7 +12,7 @@ Gate: fixed requests and policy settings have deterministic, documented meaning.
 ## Phase 1 — decision core
 
 - [x] Implement request validation, canonical action fingerprinting, hard restrictions, and policy resolution.
-- [ ] Implement run history, repetition/result accounting, and append-only decisions.
+- [ ] Implement run history, repetition/result accounting, and append-only decisions. (History and reports complete; logging remains.)
 - [ ] Add focused micro tests for every critical branch and fail-closed behavior.
 
 Gate: fixed classifier answers map to reviewed decisions; VETO never executes an action.
