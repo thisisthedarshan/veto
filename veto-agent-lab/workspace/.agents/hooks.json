@@ -7,7 +7,7 @@
           {
             "type": "command",
             "command": "'/opt/homebrew/Cellar/node/25.8.1_1/bin/node' '/Users/patel/Dev/veto/scripts/antigravity-hook.js' pre",
-            "timeout": 180
+            "timeout": 660
           }
         ]
       }

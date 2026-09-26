@@ -16,35 +16,20 @@
 
 import contextlib
 import json
-import os
 import sys
 from importlib import metadata
-from pathlib import Path
-
-ROOT = Path(__file__).resolve().parents[1]
-MODEL_ROOT = ROOT / "models" / "laya"
-MODEL_ROOT.mkdir(parents=True, exist_ok=True)
-os.environ["HF_HOME"] = str(MODEL_ROOT)
-os.environ["HF_HUB_CACHE"] = str(MODEL_ROOT / "hub")
-os.environ.setdefault("HF_HUB_DISABLE_TELEMETRY", "1")
+from model_cache import ensure_model
 
 if metadata.version("laya") != "0.3.20":
     raise RuntimeError("VETO requires laya==0.3.20")
 
-from laya import Router  # noqa: E402 - cache variables must be set first
-from huggingface_hub import snapshot_download  # noqa: E402
+snapshot = ensure_model()
 
-MODEL_CONFIG = json.loads((ROOT / "config" / "laya-model.json").read_text())
+from laya import Router  # noqa: E402 - cache variables must be set first
+from model_cache import MODEL_CONFIG  # noqa: E402
 
 
 def main():
-    snapshot = snapshot_download(
-        repo_id=MODEL_CONFIG["repository"],
-        revision=MODEL_CONFIG["revision"],
-        cache_dir=str(MODEL_ROOT / "hub"),
-        local_files_only=True,
-        allow_patterns=["rl_agent_config.json", "model.safetensors", "tokenizer/*", "encoder/*"],
-    )
     router = Router(device="cpu", models={MODEL_CONFIG["checkpoint"]: snapshot})
     for raw in sys.stdin:
         request = None

@@ -17,5 +17,5 @@ Check an item only after its implementation and focused micro test pass. Commit 
 - [x] 7d. Extract a host-neutral hook client and add macOS/Linux/Windows runtime path handling with focused tests.
 - [x] 8a. Record honest cost metadata and produce a redacted evaluation summary with focused tests.
 - [x] 8b. Isolate a live MCP session in evaluation summaries so earlier micro-test logs do not contaminate evidence.
-- [ ] 5a. Automatically acquire the pinned Laya checkpoint on first MCP startup and verify cache behavior.
+- [x] 5a. Automatically acquire the pinned Laya checkpoint on first MCP startup and verify cache behavior.
 - [ ] 8. Capture cost/evaluation evidence and run complete tests later.

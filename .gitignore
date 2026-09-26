@@ -152,3 +152,5 @@ vite.config.ts.timestamp-*
 .local/
 models/laya/
 .DS_Store
+__pycache__/
+*.pyc

@@ -14,23 +14,11 @@
 
 """Download VETO's pinned English Laya checkpoint to ignored models/laya/."""
 
-import json
-import os
+import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-MODEL_ROOT = ROOT / "models" / "laya"
-MODEL_ROOT.mkdir(parents=True, exist_ok=True)
-os.environ["HF_HOME"] = str(MODEL_ROOT)
-os.environ["HF_HUB_CACHE"] = str(MODEL_ROOT / "hub")
+sys.path.insert(0, str(ROOT / "src"))
+from model_cache import ensure_model  # noqa: E402
 
-from huggingface_hub import snapshot_download  # noqa: E402
-
-config = json.loads((ROOT / "config" / "laya-model.json").read_text())
-path = snapshot_download(
-    repo_id=config["repository"],
-    revision=config["revision"],
-    cache_dir=str(MODEL_ROOT / "hub"),
-    allow_patterns=["rl_agent_config.json", "model.safetensors", "tokenizer/*", "encoder/*"],
-)
-print(path)
+print(ensure_model())

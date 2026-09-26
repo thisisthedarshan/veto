@@ -12,13 +12,14 @@ cd veto
 npm ci
 uv venv --python python3.12 .local/venv
 uv pip install --python .local/venv/bin/python -r config/laya-requirements.txt
-.local/venv/bin/python scripts/install-laya-model.py
 npm run mcp:config
 ```
 
 The last command prints a machine-specific `mcpServers` JSON object with absolute Node, server, and clone paths. Add its `veto` entry to the coding tool's local stdio MCP configuration. Hosts with another configuration format need the same `command`, `args`, and `cwd`. Restart or refresh MCP servers and confirm that `authorize_action` and `report_action_result` appear.
 
-On Windows PowerShell, use `py -3.12 -m venv .local\\venv`, then `.\\.local\\venv\\Scripts\\python.exe -m pip install -r config\\laya-requirements.txt` and `.\\.local\\venv\\Scripts\\python.exe scripts\\install-laya-model.py`. The Node launcher selects this Python path automatically. The local hook bridge uses a Windows named pipe. The implementation has been tested on macOS; Linux and Windows still need a live host run.
+On its first launch, VETO checks for the pinned checkpoint under this clone's ignored `models/laya/` directory and downloads it there if missing. Allow network access and time for that first download. Later launches use the local files. You can still prefetch it with `.local/venv/bin/python scripts/install-laya-model.py`. If the download fails, VETO's model worker writes the error to the MCP server's stderr and classification requests deny until the model is available; check Antigravity's MCP connection logs rather than treating that as a policy judgment.
+
+On Windows PowerShell, use `py -3.12 -m venv .local\\venv`, then `.\\.local\\venv\\Scripts\\python.exe -m pip install -r config\\laya-requirements.txt`. The Node launcher selects this Python path automatically and downloads the model at first start. The local hook bridge uses a Windows named pipe. The implementation has been tested on macOS; Linux and Windows still need a live host run.
 
 ## Install host-side enforcement
 

@@ -88,7 +88,7 @@ export class LayaProvider {
   #closed = false;
 
   constructor({ python = fileURLToPath(new URL(process.platform === 'win32' ? '../.local/venv/Scripts/python.exe' : '../.local/venv/bin/python', import.meta.url)),
-                worker = fileURLToPath(new URL('./laya_worker.py', import.meta.url)), timeoutMs = 120000 } = {}) {
+                worker = fileURLToPath(new URL('./laya_worker.py', import.meta.url)), timeoutMs = 600000 } = {}) {
     this.timeoutMs = timeoutMs;
     const env = Object.fromEntries([
       'PATH', 'HOME', 'LANG', 'TMPDIR', 'SYSTEMROOT', 'WINDIR', 'COMSPEC', 'PATHEXT',
@@ -97,7 +97,7 @@ export class LayaProvider {
     this.#child = spawn(python, [worker], { stdio: ['pipe', 'pipe', 'pipe'], env });
     this.#child.stdout.setEncoding('utf8');
     this.#child.stdout.on('data', chunk => this.#receive(chunk));
-    this.#child.stderr.resume();
+    this.#child.stderr.on('data', chunk => process.stderr.write(`[veto:laya] ${chunk}`));
     this.#child.on('error', error => this.#fail(error));
     this.#child.on('exit', (code, signal) => this.#fail(new Error(`Laya worker exited: ${code ?? signal}`)));
   }

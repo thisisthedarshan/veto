@@ -21,6 +21,7 @@ Gate: fixed classifier answers map to reviewed decisions; VETO never executes an
 
 - [x] Verify Laya package provenance and license, pin its version/checkpoint, and keep downloaded model files under ignored `models/laya/`.
 - [x] Implement a project-local Laya Python worker, Node adapter, timeout, and response validation.
+- [x] Download the pinned model into ignored `models/laya/` automatically on first MCP worker start; reuse the local checkpoint afterward.
 - [x] Implement VETO MCP tools for the external host.
 
 Gate: a real direct-model Laya round trip produces a logged decision; invalid/unavailable answers deny.
