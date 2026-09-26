@@ -9,6 +9,7 @@
     "test:micro": "node --test test/*.test.js",
     "start": "node scripts/veto-mcp-server.js",
     "mcp:config": "node scripts/print-mcp-config.js",
+    "mcp:smoke": "node scripts/mcp-liveness-smoke.js",
     "report:decisions": "node scripts/summarize-decisions.js"
   },
   "engines": {

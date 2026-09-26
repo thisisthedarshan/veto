@@ -20,4 +20,6 @@ Check an item only after its implementation and focused micro test pass. Commit 
 - [x] 5a. Automatically acquire the pinned Laya checkpoint on first MCP startup and verify cache behavior.
 - [x] 7e. Make host-validated sandbox read actions usable despite noisy Laya safety scores; explain denials and document the host-neutral adapter contract.
 - [x] 7f. Accept the configured workspace root as a read target, expose active-workspace mismatches, and stop on classifier outages without seeking a chat approval bypass.
+- [x] 7g. Run VETO from a Codex MCP session, reproduce connection behavior, and isolate MCP-only clients from the shared hook endpoint.
+- [ ] 7h. Recover once from an unexpected local Laya worker exit and verify real MCP model liveness.
 - [ ] 8. Capture cost/evaluation evidence and run complete tests later.

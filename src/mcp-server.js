@@ -78,7 +78,8 @@ export async function serveStdio() {
   const provider = new LayaProvider();
   const logPath = fileURLToPath(new URL('../.local/decisions.jsonl', import.meta.url));
   const gate = new Gate(policy, provider, new DecisionLog(logPath));
-  await startHookBridge(gate);
+  // MCP-only clients must not replace the endpoint used by a separate host hook.
+  if (process.env.VETO_HOOK_BRIDGE !== 'off') await startHookBridge(gate);
   const server = createVetoMcpServer(gate);
   process.on('exit', () => provider.close());
   await server.connect(new StdioServerTransport());
