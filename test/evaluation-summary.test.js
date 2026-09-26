@@ -71,3 +71,15 @@ test('latest session selector excludes older test decisions', () => {
   assert.deepEqual(latestSessionEvents(events), events.slice(1));
   assert.throws(() => latestSessionEvents([{ event: 'decision' }]), /No session-tagged/);
 });
+
+test('host-reviewed execution is reported separately from an unexplained denied execution', () => {
+  const events = [
+    { session_id: 's', event: 'decision', run_id: 'r', request_id: 'review', action_fingerprint: 'a',
+      action: { category: 'write' }, decision: 'DENY', reason: 'manual_review' },
+    { session_id: 's', event: 'result', run_id: 'r', request_id: 'review', action_fingerprint: 'a',
+      duration_ms: 1, cost: 'unknown', reviewed_by_host: true },
+  ];
+  const summary = summarizeDecisions(events);
+  assert.equal(summary.reviewed_executions, 1);
+  assert.equal(summary.results_for_denied, 0);
+});

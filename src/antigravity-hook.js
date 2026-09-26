@@ -20,6 +20,7 @@ import { dirname, isAbsolute, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { callHookBridge } from './hook-bridge.js';
 import { evaluateHostVerdict } from './host-gate.js';
+import { actionFingerprint } from './contracts.js';
 
 const CONFIG = fileURLToPath(new URL('../.local/antigravity-demo.json', import.meta.url));
 const PENDING = fileURLToPath(new URL('../.local/antigravity-pending', import.meta.url));
@@ -58,6 +59,14 @@ function validateTarget(root, target, name) {
   return path;
 }
 
+function reviewableShellWrite(line) {
+  const echo = /^echo '([^'\r\n]*)' (>>?) ([A-Za-z0-9_./-]+)$/.exec(line);
+  if (echo) return { name: 'echo', target: echo[3], arguments: [echo[1], echo[2], echo[3]], mayCreate: true };
+  const sed = /^sed -i(?: '')? '(s\/[^/'\r\n;]+\/[^/'\r\n;]*\/g?)' ([A-Za-z0-9_./-]+)$/.exec(line);
+  if (sed) return { name: 'sed', target: sed[2], arguments: [sed[1], sed[2]], mayCreate: false };
+  return null;
+}
+
 export function commandRequest(event, config) {
   const tool = event?.toolCall?.name;
   const args = event?.toolCall?.args;
@@ -85,13 +94,25 @@ export function commandRequest(event, config) {
   const line = args?.CommandLine;
   const cwd = args?.Cwd;
   if (args?.RunPersistent || args?.RequestedTerminalID) throw new Error('Persistent terminal execution is outside the demo');
+  if (typeof cwd !== 'string' || realpathSync(cwd) !== workspace) throw new Error('Command cwd must be the demo workspace');
+  if (typeof line === 'string' && line.length <= 1024) {
+    const write = reviewableShellWrite(line);
+    if (write) {
+      validateTarget(workspace, write.target, write.mayCreate ? 'touch' : write.name);
+      return {
+        run_id: event.conversationId, request_id: requestId, goal: config.goal,
+        action: { kind: 'command', name: write.name, arguments: write.arguments, cwd: workspace,
+          targets: [write.target], raw_command: line },
+        metadata: { category: 'write' },
+      };
+    }
+  }
   if (typeof line !== 'string' || !/^[A-Za-z0-9_./ \t-]+$/.test(line) || line.length > 1024) {
     throw new Error('Only a single simple command is allowed');
   }
   const tokens = line.trim().split(/\s+/);
   const name = tokens.shift();
   if (!COMMANDS.has(name)) throw new Error('Command is outside the demo allowlist');
-  if (typeof cwd !== 'string' || realpathSync(cwd) !== workspace) throw new Error('Command cwd must be the demo workspace');
   if (name === 'npm') {
     if (tokens.length !== 1 || tokens[0] !== 'test') throw new Error('Only npm test is allowed');
     return {
@@ -121,6 +142,16 @@ function pendingPath(event) {
   return join(PENDING, `${id}.json`);
 }
 
+function savePending(event, request, verdict, reviewed = false) {
+  mkdirSync(PENDING, { recursive: true, mode: 0o700 });
+  writeFileSync(pendingPath(event), JSON.stringify({
+    run_id: request.run_id, request_id: request.request_id,
+    action_fingerprint: verdict.action_fingerprint,
+    tool_hash: createHash('sha256').update(JSON.stringify([event.toolCall.name, event.toolCall.args])).digest('hex'),
+    reviewed, started_at: Date.now(),
+  }), { mode: 0o600 });
+}
+
 export async function handlePreToolUse(event, { authorize = request => callHookBridge('authorize', request), config } = {}) {
   try {
     const selected = config ?? JSON.parse(readFileSync(CONFIG, 'utf8'));
@@ -128,6 +159,15 @@ export async function handlePreToolUse(event, { authorize = request => callHookB
     if (typeof event?.conversationId !== 'string' || !Number.isSafeInteger(event.stepIdx)) throw new Error('Antigravity hook metadata missing');
     const request = commandRequest(event, selected);
     const verdict = await authorize(request);
+    const target = request.action.targets[0];
+    if (verdict?.decision === 'DENY' && verdict.reason === 'manual_review') {
+      if (verdict.action_fingerprint !== actionFingerprint(request)) return deny('VETO fingerprint mismatch');
+      if (request.action.name === 'rm' && !statSync(resolve(request.action.cwd, target)).isFile()) {
+        return deny('Host only permits deleting regular files');
+      }
+      savePending(event, request, verdict, true);
+      return { decision: 'force_ask', reason: `VETO manual review: ${verdict.explanation ?? 'Review this exact tool call'}` };
+    }
     const outcome = evaluateHostVerdict(request, verdict);
     if (outcome.decision !== 'allow') {
       const detail = verdict?.explanation ? ` ${verdict.explanation}` : '';
@@ -136,22 +176,15 @@ export async function handlePreToolUse(event, { authorize = request => callHookB
         : 'Do not retry by calling authorize_action directly; ask the operator if review is needed.';
       return deny(`${outcome.reason}.${detail} ${next}`);
     }
-    const target = request.action.targets[0];
     if (request.action.name === 'rm' && !statSync(resolve(request.action.cwd, target)).isFile()) {
       return deny('Host only permits deleting regular files');
     }
-    mkdirSync(PENDING, { recursive: true, mode: 0o700 });
-    writeFileSync(pendingPath(event), JSON.stringify({
-      run_id: request.run_id, request_id: request.request_id,
-      action_fingerprint: verdict.action_fingerprint,
-      tool_hash: createHash('sha256').update(JSON.stringify([event.toolCall.name, event.toolCall.args])).digest('hex'),
-      started_at: Date.now(),
-    }), { mode: 0o600 });
+    savePending(event, request, verdict);
     return { decision: 'allow', reason: 'VETO authorized exact command' };
   } catch (error) { return deny(`VETO hook failed: ${error.message}`); }
 }
 
-export async function handlePostToolUse(event, { report = result => callHookBridge('report', result) } = {}) {
+export async function handlePostToolUse(event, { report = (result, reviewed) => callHookBridge(reviewed ? 'report_reviewed' : 'report', result) } = {}) {
   try {
     const path = pendingPath(event);
     const pending = JSON.parse(readFileSync(path, 'utf8'));
@@ -163,7 +196,7 @@ export async function handlePostToolUse(event, { report = result => callHookBrid
       status: event.error ? 'failure' : 'success',
       duration_ms: Math.max(0, Date.now() - pending.started_at),
       cost: 'unknown',
-    });
+    }, pending.reviewed === true);
     unlinkSync(path);
   } catch {}
   return {};

@@ -82,6 +82,17 @@ export class Gate {
     return { recorded: true };
   }
 
+  reportReviewed(input) {
+    const report = validateResultReport(input);
+    const record = this.#runs.get(report.run_id)?.byRequest.get(report.request_id);
+    if (!record || record.fingerprint !== report.action_fingerprint) throw new Error('unknown or mismatched review');
+    if (record.verdict.reason !== 'manual_review') throw new Error('action was not marked for manual review');
+    if (record.result) throw new Error('result already reported');
+    record.result = { ...report, reviewed_by_host: true };
+    this.log?.appendResult(record.result);
+    return { recorded: true, reviewed_by_host: true };
+  }
+
   records(runId) {
     return this.#runs.get(runId)?.records.map(record => ({ ...record })) ?? [];
   }

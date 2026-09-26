@@ -62,6 +62,7 @@ export class DecisionLog {
       duration_ms: report.duration_ms, output_digest: report.output_digest ?? null,
       output_size_bytes: report.output_size_bytes ?? null,
       cost: report.cost ?? 'unknown',
+      reviewed_by_host: report.reviewed_by_host ?? false,
     });
   }
 

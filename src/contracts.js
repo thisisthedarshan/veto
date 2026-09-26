@@ -22,7 +22,7 @@ const POLICY_KEYS = new Set([
   'max_replans_without_progress', 'repeat_without_progress_limit',
   'repetition_probability_threshold', 'low_progress_max',
   'minimum_choice_margin', 'manual_review_categories',
-  'allow_host_validated_read_only_actions',
+  'allow_host_validated_read_only_actions', 'review_workspace_writes',
 ]);
 const CATEGORIES = new Set(['read', 'write', 'delete', 'build', 'test', 'network', 'other']);
 
@@ -131,6 +131,9 @@ export function validatePolicy(policy) {
   stringArray(policy.manual_review_categories, 'manual_review_categories');
   if (typeof policy.allow_host_validated_read_only_actions !== 'boolean') {
     throw new TypeError('allow_host_validated_read_only_actions must be boolean');
+  }
+  if (typeof policy.review_workspace_writes !== 'boolean') {
+    throw new TypeError('review_workspace_writes must be boolean');
   }
   for (const key of ['max_actions_per_run', 'max_replans_without_progress', 'repeat_without_progress_limit']) {
     if (!Number.isSafeInteger(policy[key]) || policy[key] < 1) throw new TypeError(`${key} must be a positive integer`);

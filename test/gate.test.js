@@ -58,5 +58,28 @@ test('reported progress and reset clear loop history', async () => {
 
 test('provider failure denies and never reports an allowed action', async () => {
   const gate = new Gate(policy, { classify: async () => { throw new Error('offline'); } });
-  assert.equal((await gate.authorize(request('a'))).reason, 'manual_review');
+  assert.equal((await gate.authorize(request('a'))).reason, 'stop');
+});
+
+test('host-reviewed execution is reported only for an exact manual-review proposal', async () => {
+  const gate = new Gate(policy, { classify: async () => answer });
+  const write = { ...request('review'), action: { ...request('review').action, name: 'echo',
+    arguments: ['hello', '>', 'hello.txt'], targets: ['hello.txt'], raw_command: "echo 'hello' > hello.txt" },
+    metadata: { category: 'write' } };
+  const verdict = await gate.authorize(write);
+  assert.equal(verdict.reason, 'manual_review');
+  assert.throws(() => gate.report({ run_id: 'r', request_id: 'review', action_fingerprint: verdict.action_fingerprint,
+    status: 'success', duration_ms: 1 }), /denied/);
+  assert.deepEqual(gate.reportReviewed({ run_id: 'r', request_id: 'review', action_fingerprint: verdict.action_fingerprint,
+    status: 'success', duration_ms: 1 }), { recorded: true, reviewed_by_host: true });
+  assert.equal(gate.records('r')[0].result.reviewed_by_host, true);
+});
+
+test('configured workspace write review does not depend on model availability', async () => {
+  const gate = new Gate(policy, { classify: async () => { throw new Error('should not classify'); } });
+  const write = { ...request('write'), action: { ...request('write').action, name: 'echo',
+    arguments: ['hello', '>', 'hello.txt'], targets: ['hello.txt'], raw_command: "echo 'hello' > hello.txt" },
+    metadata: { category: 'write' } };
+  const verdict = await gate.authorize(write);
+  assert.equal(verdict.rule, 'workspace_write_review');
 });

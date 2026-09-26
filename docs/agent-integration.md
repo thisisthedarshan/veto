@@ -29,13 +29,15 @@ An instruction asking the agent to call VETO voluntarily is insufficient: the ag
 
 The host adapter, rather than the agent, calls VETO for each real proposal. Tell the agent to work with its ordinary tools and to stop or ask the operator when the hook denies an action. Do not have it retry `authorize_action` with guessed `kind` values. If the host supports hiding MCP tools from the model while leaving them available to the hook, hide the two VETO tools. The sample policy explicitly trusts a small set of host-validated read-only operations, so each host must map only genuinely read-only, workspace-confined tools to those names.
 
+The sample policy sends supported workspace writes to manual review after hard path checks. In Antigravity, the hook maps that result to a native `force_ask` prompt; approving the prompt executes the exact pending call once and the post-tool hook records a reviewed result. Other hosts must implement an equivalent trusted approval step or keep `manual_review` denied. A chat message saying “approved” is not an approval signal for the hook.
+
 For a direct MCP connection check without a hook, run `npm run mcp:smoke` in the VETO clone. It starts one isolated stdio server, makes three proposals through the local model, checks the server after each, and leaves any existing hook endpoint alone. MCP-only clients can set `VETO_HOOK_BRIDGE=off` in their server environment for the same isolation. A successful connection check does not prove that the coding host enforces VETO before its own tools.
 
 ## Antigravity's focused hook
 
 The repository includes `.agents/mcp_config.json` and `.agents/hooks.json` for an Antigravity workspace opened at the VETO repository root. The checked-in MCP file contains this machine's absolute paths; on another clone, replace its `veto` entry with `npm run mcp:config` output. Antigravity's [MCP guide](https://www.antigravity.google/docs/mcp) and [hooks guide](https://antigravity.google/docs/hooks?tab=ide) explain server and hook loading.
 
-The hook authorizes bounded `ls`, `cat`, `touch`, `rm`, and `npm test` commands plus named native file and search tools within a configured workspace. It denies matched task and subagent tools, shell syntax, symlinks, and paths outside that workspace. For the small standalone demo, prepare its trusted goal and disposable files:
+The hook handles bounded `ls`, `cat`, `touch`, `rm`, and `npm test` commands; narrowly parsed `echo` output redirection and `sed -i` substitution; and named native file and search tools within a configured workspace. Workspace writes trigger manual review under the sample policy. It denies matched task and subagent tools, unsupported shell syntax, symlinks, and paths outside that workspace. For the small standalone demo, prepare its trusted goal and disposable files:
 
 ```sh
 node scripts/prepare-antigravity-demo.js "Read src/hello.txt; do not delete protected/keep.txt"

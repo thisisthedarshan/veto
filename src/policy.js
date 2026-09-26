@@ -23,6 +23,10 @@ const READ_ONLY_ACTIONS = new Set([
   'command:ls', 'command:cat',
   'file:view_file', 'file:list_dir', 'file:find_by_name', 'file:grep_search',
 ]);
+const REVIEWABLE_WRITES = new Set([
+  'command:echo', 'command:sed', 'command:touch',
+  'file:write_to_file', 'file:replace_file_content', 'file:multi_replace_file_content',
+]);
 
 function probability(value, name) {
   if (!Number.isFinite(value) || value < 0 || value > 1) throw new TypeError(`${name} must be in [0,1]`);
@@ -100,6 +104,11 @@ export function resolveAction(input, policyInput, classification, history = {}) 
   if (request.action.targets.some(target => forbiddenTarget(target, policy.protected_paths))) {
     return verdict(request, policy, 'DENY', 'blocked', 'hard_restriction',
       'A target is protected or outside the workspace-relative path boundary');
+  }
+  if (policy.review_workspace_writes && request.metadata?.category === 'write' &&
+      REVIEWABLE_WRITES.has(`${request.action.kind}:${request.action.name}`)) {
+    return verdict(request, policy, 'DENY', 'manual_review', 'workspace_write_review',
+      'Workspace write requires approval of this exact tool call');
   }
   let answer;
   try { answer = validateClassification(classification, policy); }

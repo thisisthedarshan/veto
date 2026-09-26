@@ -111,15 +111,66 @@ test('native read of workspace root maps to dot and wrong active workspace is ex
   assert.match(response.reason, /Active workspace must be/);
 });
 
-test('review denial tells the agent to stop direct MCP probing', async () => {
+test('manual review uses Antigravity exact-call approval and reports execution', async () => {
   const input = event('ls src', 'run_command', 114);
   mkdirSync(join(workspace, 'src'), { recursive: true });
   const response = await handlePreToolUse(input, { config,
     authorize: async request => ({ decision: 'DENY', reason: 'manual_review',
       explanation: 'Human review required', action_fingerprint: actionFingerprint(request) }),
   });
-  assert.equal(response.decision, 'deny');
-  assert.match(response.reason, /Do not retry by calling authorize_action directly/);
+  assert.equal(response.decision, 'force_ask');
+  assert.match(response.reason, /VETO manual review/);
+  let reviewed;
+  await handlePostToolUse({ ...input, error: '' }, { report: async (_result, flag) => { reviewed = flag; } });
+  assert.equal(reviewed, true);
+});
+
+test('manual review cannot approve a mismatched action or a directory deletion', async () => {
+  const mismatched = await handlePreToolUse(event('cat safe.txt', 'run_command', 124), {
+    config, authorize: async () => ({ decision: 'DENY', reason: 'manual_review',
+      action_fingerprint: '0'.repeat(64) }),
+  });
+  assert.equal(mismatched.decision, 'deny');
+  assert.match(mismatched.reason, /fingerprint mismatch/);
+  const directory = await handlePreToolUse(event('rm protected', 'run_command', 125), {
+    config, authorize: async request => ({ decision: 'DENY', reason: 'manual_review',
+      action_fingerprint: actionFingerprint(request) }),
+  });
+  assert.equal(directory.decision, 'deny');
+  assert.match(directory.reason, /regular files/);
+});
+
+test('bounded echo redirection and sed replacement become workspace writes', async () => {
+  const echo = commandRequest(event("echo 'hello world' > hello.txt", 'run_command', 117), config);
+  assert.equal(echo.action.name, 'echo');
+  assert.deepEqual(echo.action.targets, ['hello.txt']);
+  assert.equal(echo.metadata.category, 'write');
+  const sed = commandRequest(event("sed -i '' 's/safe/safer/' safe.txt", 'run_command', 118), config);
+  assert.equal(sed.action.name, 'sed');
+  assert.deepEqual(sed.action.targets, ['safe.txt']);
+  assert.throws(() => commandRequest(event("echo 'hello' > hello.txt; rm safe.txt", 'run_command', 119), config));
+  assert.throws(() => commandRequest(event("sed -i 's/safe/safer/e' safe.txt", 'run_command', 120), config));
+  assert.throws(() => commandRequest(event('cat safe.txt > hello.txt', 'run_command', 121), config));
+});
+
+test('echo redirection reaches VETO review, while protected output remains blocked', async () => {
+  const answer = {
+    safety: { choice: 'caution', probabilities: { safe: 0.2, caution: 0.4, dangerous: 0.2, destructive: 0.2 } },
+    alignment: { choice: 'aligned', probabilities: { aligned: 0.6, partial: 0.2, uncertain: 0.1, contradictory: 0.1 } },
+    progress: { score: 0.6 }, repetition: { noul: 0.1 },
+  };
+  const gate = new Gate(loadPolicy(new URL('../config/policy.yaml', import.meta.url)), { classify: async () => answer });
+  const input = event("echo 'hello world' > hello.txt", 'run_command', 122);
+  const response = await handlePreToolUse(input, { config, authorize: request => gate.authorize(request) });
+  assert.equal(response.decision, 'force_ask');
+  await handlePostToolUse({ ...input, error: '' }, { report: (result, reviewed) =>
+    reviewed ? gate.reportReviewed(result) : gate.report(result) });
+  assert.equal(gate.records(input.conversationId)[0].result.reviewed_by_host, true);
+  const protectedInput = event("echo 'bad' > protected/keep.txt", 'run_command', 123);
+  const protectedResponse = await handlePreToolUse(protectedInput, { config, authorize: request => gate.authorize(request) });
+  assert.equal(protectedResponse.decision, 'deny');
+  assert.match(protectedResponse.reason, /blocked/);
+  assert.equal(readFileSync(join(workspace, 'protected', 'keep.txt'), 'utf8'), 'keep');
 });
 
 test('classifier outage tells the agent to restart VETO instead of seeking approval', async () => {

@@ -45,11 +45,11 @@ export function summarizeDecisions(events) {
     classifier_calls: 0, classifier_duration_ms: 0,
     reported_duration_ms: 0, measured_cost_usd: 0, measured_cost_reports: 0,
     unknown_cost_reports: 0, estimated_cost_usd: 0, estimated_cost_proposals: 0,
-    unknown_cost_estimates: 0, unreported_allows: 0, results_for_denied: 0,
+    unknown_cost_estimates: 0, unreported_allows: 0, reviewed_executions: 0, results_for_denied: 0,
     host_execution_proof: 'requires host transcript and before/after workspace evidence',
   };
   const decisions = new Map();
-  const results = new Set();
+  const results = new Map();
   for (const event of events) {
     if (event.event === 'decision') {
       summary.decisions++;
@@ -65,7 +65,7 @@ export function summarizeDecisions(events) {
         summary.estimated_cost_proposals++;
       } else summary.unknown_cost_estimates++;
       const id = identity(event);
-      if (id) decisions.set(id, event.decision);
+      if (id) decisions.set(id, { decision: event.decision, reason: event.reason });
     } else if (event.event === 'result') {
       summary.results++;
       if (Number.isFinite(event.duration_ms) && event.duration_ms >= 0) {
@@ -76,12 +76,15 @@ export function summarizeDecisions(events) {
         summary.measured_cost_reports++;
       } else summary.unknown_cost_reports++;
       const id = identity(event);
-      if (id) results.add(id);
+      if (id) results.set(id, event.reviewed_by_host === true);
     }
   }
-  for (const [id, decision] of decisions) {
+  for (const [id, { decision, reason }] of decisions) {
     if (decision === 'ALLOW' && !results.has(id)) summary.unreported_allows++;
-    if (decision === 'DENY' && results.has(id)) summary.results_for_denied++;
+    if (decision === 'DENY' && results.has(id)) {
+      if (reason === 'manual_review' && results.get(id) === true) summary.reviewed_executions++;
+      else summary.results_for_denied++;
+    }
   }
   if (summary.classifier_calls === 0) summary.classifier_duration_ms = null;
   if (summary.results === 0) summary.reported_duration_ms = null;

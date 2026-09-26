@@ -46,6 +46,7 @@ export async function startHookBridge(gate) {
         let result;
         if (message.method === 'authorize') result = await gate.authorize(message.params);
         else if (message.method === 'report') result = gate.report(message.params);
+        else if (message.method === 'report_reviewed') result = gate.reportReviewed(message.params);
         else throw new Error('unknown hook method');
         socket.end(`${JSON.stringify({ result })}\n`);
       } catch (error) { socket.end(`${JSON.stringify({ error: error.message })}\n`); }

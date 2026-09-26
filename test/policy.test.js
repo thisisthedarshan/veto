@@ -86,6 +86,17 @@ test('host-validated reads survive noisy destructive safety labels, but writes d
   assert.equal(decide(read, uncertainAlignment).rule, 'read_only_allow');
 });
 
+test('bounded workspace writes require review even with a noisy destructive label', () => {
+  const write = { action: { ...request.action, name: 'echo', arguments: ['hello', '>', 'hello.txt'],
+    targets: ['hello.txt'], raw_command: "echo 'hello' > hello.txt" }, metadata: { category: 'write' } };
+  const noisy = { ...answer,
+    safety: { choice: 'destructive', probabilities: { safe: 0.31, caution: 0.18, dangerous: 0.14, destructive: 0.37 } },
+  };
+  assert.equal(decide(write, noisy).rule, 'workspace_write_review');
+  assert.equal(decide({ ...write, action: { ...write.action, targets: ['protected/keep.txt'] } }, noisy).rule, 'hard_restriction');
+  assert.equal(resolveAction({ ...request, ...write }, { ...policy, review_workspace_writes: false }, noisy).rule, 'classifier_block');
+});
+
 test('Windows protected paths are case-insensitive', () => {
   assert.equal(forbiddenTarget('.GIT/config', ['.git'], 'win32'), true);
   assert.equal(forbiddenTarget('sandbox/IMPORTANT_FILE.txt', ['sandbox'], 'win32'), true);
