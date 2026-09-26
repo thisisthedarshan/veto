@@ -35,6 +35,7 @@ Gate: a real direct-model Laya round trip produces a logged decision; invalid/un
 - [x] Generalize the hook client contract and unit-test platform-specific paths and local IPC choices.
 - [ ] Validate Antigravity hooks and direct Laya inference on Linux and Windows hosts when available.
 - [ ] Demonstrate safe allow, protected deletion, no-progress repetition, invented path, and cost accounting.
+- [x] Add a decision-log summary for measured duration, known or unknown cost, and evaluation counts.
 - [ ] Run complete tests and document observed evidence when requested.
 
 Gate: transcript and log prove that denied actions were never executed.

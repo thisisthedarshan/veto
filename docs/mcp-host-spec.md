@@ -36,6 +36,8 @@ The input schema is strict. Required fields:
 | `action.targets` | nonempty string array | Targets as they will be executed. |
 | `action.raw_command` | optional nonempty string | Exact shell command, when applicable. |
 | `metadata.category` | optional enum | `read`, `write`, `delete`, `build`, `test`, `network`, or `other`. |
+| `metadata.estimated_cost_usd` | optional nonnegative number or `unknown` | Pre-execution estimate; never infer a number from an unmeasured call. |
+| `metadata.cost_estimate_source` | optional `host` or `provider` | Required whenever the estimate is numeric. |
 
 Example proposal:
 
@@ -69,9 +71,12 @@ Report the observed result of each allowed execution:
 | `status` | `success`, `failure`, `unknown` | Observed outcome. |
 | `duration_ms` | nonnegative number | Observed wall time. |
 | `output_digest` | optional string | Bounded output summary or digest. |
-| `cost` | nonnegative number or `unknown` | Measured cost, or `unknown`. |
+| `output_size_bytes` | optional nonnegative integer | Observed output byte count. |
+| `cost` | nonnegative number or `unknown` | Measured USD cost, or `unknown`. |
 
 Report failed executions too. If result reporting fails, mark the run history incomplete. Do not invent provider usage or monetary cost. VETO cannot account for calls that bypass the hook.
+
+Run `npm run report:decisions` in the VETO clone for aggregate counts, classifier time, reported action time, and separate estimated, measured, and unknown cost counts. The output deliberately does not claim savings or prove that a denied tool never executed; that proof requires the host transcript and a before/after workspace check. `null` totals mean no measurement was supplied.
 
 ## Required host sequence
 

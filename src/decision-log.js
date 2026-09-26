@@ -15,10 +15,12 @@
  */
 
 import { appendFileSync, mkdirSync } from 'node:fs';
+import { randomUUID } from 'node:crypto';
 import { dirname } from 'node:path';
 
 export class DecisionLog {
   #sequence = 0;
+  #sessionId = randomUUID();
 
   constructor(path) {
     this.path = path;
@@ -37,6 +39,8 @@ export class DecisionLog {
         name: request.action.name,
         category: request.metadata?.category ?? 'other',
       },
+      estimated_cost_usd: request.metadata?.estimated_cost_usd ?? 'unknown',
+      cost_estimate_source: request.metadata?.cost_estimate_source ?? null,
       classification: classification && verdict.rule !== 'classification_invalid' ? {
         safety: { choice: classification.safety.choice, probabilities: classification.safety.probabilities },
         alignment: { choice: classification.alignment.choice, probabilities: classification.alignment.probabilities },
@@ -56,12 +60,13 @@ export class DecisionLog {
       event: 'result', run_id: report.run_id, request_id: report.request_id,
       action_fingerprint: report.action_fingerprint, status: report.status,
       duration_ms: report.duration_ms, output_digest: report.output_digest ?? null,
+      output_size_bytes: report.output_size_bytes ?? null,
       cost: report.cost ?? 'unknown',
     });
   }
 
   #append(event) {
-    const entry = { sequence: ++this.#sequence, timestamp: new Date().toISOString(), ...event };
+    const entry = { session_id: this.#sessionId, sequence: ++this.#sequence, timestamp: new Date().toISOString(), ...event };
     appendFileSync(this.path, `${JSON.stringify(entry)}\n`, { mode: 0o600 });
   }
 }

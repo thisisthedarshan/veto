@@ -63,6 +63,21 @@ export function validateAuthorizationRequest(input) {
     if (request.metadata.category !== undefined && !CATEGORIES.has(request.metadata.category)) {
       throw new TypeError('metadata.category is invalid');
     }
+    const estimate = request.metadata.estimated_cost_usd;
+    if (estimate !== undefined && estimate !== 'unknown' &&
+        !(Number.isFinite(estimate) && estimate >= 0)) {
+      throw new TypeError('metadata.estimated_cost_usd is invalid');
+    }
+    const source = request.metadata.cost_estimate_source;
+    if (source !== undefined && !['host', 'provider'].includes(source)) {
+      throw new TypeError('metadata.cost_estimate_source is invalid');
+    }
+    if (typeof estimate === 'number' && source === undefined) {
+      throw new TypeError('numeric cost estimate requires a source');
+    }
+    if (source !== undefined && typeof estimate !== 'number') {
+      throw new TypeError('cost estimate source requires a numeric estimate');
+    }
   }
   return request;
 }
@@ -95,6 +110,10 @@ export function validateResultReport(input) {
   if (!['success', 'failure', 'unknown'].includes(report.status)) throw new TypeError('invalid status');
   if (!Number.isFinite(report.duration_ms) || report.duration_ms < 0) throw new TypeError('invalid duration_ms');
   if (report.output_digest !== undefined && typeof report.output_digest !== 'string') throw new TypeError('invalid output_digest');
+  if (report.output_size_bytes !== undefined &&
+      (!Number.isSafeInteger(report.output_size_bytes) || report.output_size_bytes < 0)) {
+    throw new TypeError('invalid output_size_bytes');
+  }
   if (report.cost !== undefined && report.cost !== 'unknown' &&
       !(Number.isFinite(report.cost) && report.cost >= 0)) throw new TypeError('invalid cost');
   return report;

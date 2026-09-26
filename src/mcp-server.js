@@ -38,7 +38,11 @@ const authorizationSchema = z.object({
   request_id: z.string().min(1),
   goal: z.string().min(1),
   action: actionSchema,
-  metadata: z.object({ category: z.enum(['read', 'write', 'delete', 'build', 'test', 'network', 'other']).optional() }).strict().optional(),
+  metadata: z.object({
+    category: z.enum(['read', 'write', 'delete', 'build', 'test', 'network', 'other']).optional(),
+    estimated_cost_usd: z.union([z.number().nonnegative(), z.literal('unknown')]).optional(),
+    cost_estimate_source: z.enum(['host', 'provider']).optional(),
+  }).strict().optional(),
 }).strict();
 
 const resultSchema = z.object({
@@ -48,6 +52,7 @@ const resultSchema = z.object({
   status: z.enum(['success', 'failure', 'unknown']),
   duration_ms: z.number().nonnegative(),
   output_digest: z.string().optional(),
+  output_size_bytes: z.number().int().nonnegative().optional(),
   cost: z.union([z.number().nonnegative(), z.literal('unknown')]).optional(),
 }).strict();
 

@@ -71,6 +71,7 @@ export function decisionState({ request, history }) {
     trusted_goal: request.goal,
     action: request.action,
     category: request.metadata?.category ?? 'other',
+    estimated_cost_usd: request.metadata?.estimated_cost_usd ?? 'unknown',
     recent_actions: history.actions,
     repeated_without_progress: history.repeatsWithoutProgress,
     replans_without_progress: history.replansWithoutProgress,

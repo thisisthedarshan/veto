@@ -33,13 +33,17 @@ const answer = {
 test('decision and result events are ordered and omit raw goal/arguments', async () => {
   const path = join(mkdtempSync(join(tmpdir(), 'veto-log-')), 'decisions.jsonl');
   const gate = new Gate(policy, { classify: async () => ({ ...answer, raw_secret: 'classifier-secret' }) }, new DecisionLog(path));
-  const request = { run_id: 'r', request_id: 'a', goal: 'secret-goal', action: { kind: 'command', name: 'ls', arguments: ['secret-argument'], cwd: '/demo', targets: ['secret-target'] }, metadata: { category: 'read' } };
+  const request = { run_id: 'r', request_id: 'a', goal: 'secret-goal', action: { kind: 'command', name: 'ls', arguments: ['secret-argument'], cwd: '/demo', targets: ['secret-target'] }, metadata: { category: 'read', estimated_cost_usd: 0.02, cost_estimate_source: 'host' } };
   const verdict = await gate.authorize(request);
-  gate.report({ run_id: 'r', request_id: 'a', action_fingerprint: verdict.action_fingerprint, status: 'success', duration_ms: 4, output_digest: 'digest' });
+  gate.report({ run_id: 'r', request_id: 'a', action_fingerprint: verdict.action_fingerprint, status: 'success', duration_ms: 4, output_digest: 'digest', output_size_bytes: 12 });
   const contents = readFileSync(path, 'utf8');
   const entries = contents.trim().split('\n').map(JSON.parse);
   assert.deepEqual(entries.map(entry => [entry.sequence, entry.event]), [[1, 'decision'], [2, 'result']]);
   assert.equal(entries[0].classification.safety.choice, 'safe');
+  assert.equal(entries[0].estimated_cost_usd, 0.02);
+  assert.equal(entries[0].cost_estimate_source, 'host');
+  assert.equal(entries[0].session_id, entries[1].session_id);
+  assert.equal(entries[1].output_size_bytes, 12);
   assert.equal(entries[1].cost, 'unknown');
   assert.doesNotMatch(contents, /secret-goal|secret-argument|secret-target|classifier-secret/);
   assert.equal(statSync(path).mode & 0o777, 0o600);
