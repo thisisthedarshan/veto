@@ -16,8 +16,15 @@
 
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { parseDecisionLog, summarizeDecisions } from '../src/evaluation-summary.js';
+import { latestSessionEvents, parseDecisionLog, summarizeDecisions } from '../src/evaluation-summary.js';
 
-const path = process.argv[2] ?? fileURLToPath(new URL('../.local/decisions.jsonl', import.meta.url));
-try { console.log(JSON.stringify(summarizeDecisions(parseDecisionLog(readFileSync(path, 'utf8'))), null, 2)); }
+const args = process.argv.slice(2);
+const latest = args.includes('--latest-session');
+const paths = args.filter(arg => arg !== '--latest-session');
+const path = paths[0] ?? fileURLToPath(new URL('../.local/decisions.jsonl', import.meta.url));
+try {
+  if (paths.length > 1) throw new Error('Use at most one log path');
+  const events = parseDecisionLog(readFileSync(path, 'utf8'));
+  console.log(JSON.stringify(summarizeDecisions(latest ? latestSessionEvents(events) : events), null, 2));
+}
 catch (error) { console.error(`Cannot summarize decisions: ${error.message}`); process.exitCode = 1; }

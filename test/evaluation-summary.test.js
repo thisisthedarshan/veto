@@ -16,7 +16,7 @@
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { parseDecisionLog, summarizeDecisions } from '../src/evaluation-summary.js';
+import { latestSessionEvents, parseDecisionLog, summarizeDecisions } from '../src/evaluation-summary.js';
 import { validateAuthorizationRequest, validateResultReport } from '../src/contracts.js';
 
 test('summary separates estimated, measured, and unavailable costs', () => {
@@ -60,4 +60,14 @@ test('cost metadata requires source and result sizes are nonnegative', () => {
     action_fingerprint: 'a'.repeat(64), status: 'success', duration_ms: 1,
     output_size_bytes: -1 }), /output_size_bytes/);
   assert.throws(() => parseDecisionLog('{invalid'), /line 1/);
+});
+
+test('latest session selector excludes older test decisions', () => {
+  const events = [
+    { event: 'decision', session_id: 'test', decision: 'DENY' },
+    { event: 'decision', session_id: 'live', decision: 'ALLOW' },
+    { event: 'result', session_id: 'live', cost: 'unknown' },
+  ];
+  assert.deepEqual(latestSessionEvents(events), events.slice(1));
+  assert.throws(() => latestSessionEvents([{ event: 'decision' }]), /No session-tagged/);
 });

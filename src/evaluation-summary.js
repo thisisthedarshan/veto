@@ -33,6 +33,12 @@ export function parseDecisionLog(source) {
   });
 }
 
+export function latestSessionEvents(events) {
+  const session = events.findLast(event => typeof event.session_id === 'string')?.session_id;
+  if (!session) throw new Error('No session-tagged VETO events found');
+  return events.filter(event => event.session_id === session);
+}
+
 export function summarizeDecisions(events) {
   const summary = {
     decisions: 0, results: 0, by_decision: {}, by_reason: {}, by_category: {},
