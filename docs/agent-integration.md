@@ -31,6 +31,8 @@ The host adapter, rather than the agent, calls VETO for each real proposal. Tell
 
 The sample policy sends supported workspace writes to manual review after hard path checks. In Antigravity, the hook maps that result to a native `force_ask` prompt; approving the prompt executes the exact pending call once and the post-tool hook records a reviewed result. Other hosts must implement an equivalent trusted approval step or keep `manual_review` denied. A chat message saying “approved” is not an approval signal for the hook.
 
+For profiled general commands, the hook supports `file` with one workspace-relative target and the commands in `general_zero_arg_executables` with no arguments. The sample includes `whoami`, `date`, `ifconfig`, `pwd`, `uname`, and `id`. Laya must label the command safe with probability at least `general_command_safe_threshold` (0.80 by default) and aligned with the trusted goal for automatic approval. Lower confidence requires host review; `always_review_executables` makes `ifconfig` reviewable even with a high safe score. Both lists and the threshold are set in `config/policy.yaml`; a command must also appear in `allowed_executables`. Unknown commands and unsupported arguments remain denied by the hook.
+
 For a direct MCP connection check without a hook, run `npm run mcp:smoke` in the VETO clone. It starts one isolated stdio server, makes three proposals through the local model, checks the server after each, and leaves any existing hook endpoint alone. MCP-only clients can set `VETO_HOOK_BRIDGE=off` in their server environment for the same isolation. A successful connection check does not prove that the coding host enforces VETO before its own tools.
 
 ## Antigravity's focused hook

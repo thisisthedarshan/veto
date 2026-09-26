@@ -153,6 +153,44 @@ test('bounded echo redirection and sed replacement become workspace writes', asy
   assert.throws(() => commandRequest(event('cat safe.txt > hello.txt', 'run_command', 121), config));
 });
 
+test('profiled general commands bind only supported arguments and workspace paths', () => {
+  const file = commandRequest(event('file safe.txt', 'run_command', 126), config);
+  assert.equal(file.action.name, 'file');
+  assert.deepEqual(file.action.targets, ['safe.txt']);
+  assert.equal(file.metadata.general_command, true);
+  assert.deepEqual(commandRequest(event('whoami', 'run_command', 127), config).action.targets, ['.']);
+  assert.equal(commandRequest(event('ifconfig', 'run_command', 128), config).metadata.category, 'network');
+  assert.throws(() => commandRequest(event('file /etc/passwd', 'run_command', 129), config));
+  assert.throws(() => commandRequest(event('file -b', 'run_command', 130), config));
+  assert.throws(() => commandRequest(event('date +%s', 'run_command', 131), config));
+  assert.throws(() => commandRequest(event('whoami; date', 'run_command', 132), config));
+});
+
+test('profiled commands use Laya confidence and Antigravity review', async () => {
+  const safe = {
+    safety: { choice: 'safe', probabilities: { safe: 0.9, caution: 0.05, dangerous: 0.03, destructive: 0.02 } },
+    alignment: { choice: 'aligned', probabilities: { aligned: 0.9, partial: 0.05, uncertain: 0.03, contradictory: 0.02 } },
+    progress: { score: 0.8 }, repetition: { noul: 0.1 },
+  };
+  const policy = loadPolicy(new URL('../config/policy.yaml', import.meta.url));
+  const gate = new Gate(policy, { classify: async () => safe });
+  const allowed = await handlePreToolUse(event('file safe.txt', 'run_command', 133), {
+    config, authorize: request => gate.authorize(request),
+  });
+  assert.equal(allowed.decision, 'allow');
+  const reviewed = await handlePreToolUse(event('ifconfig', 'run_command', 134), {
+    config, authorize: request => gate.authorize(request),
+  });
+  assert.equal(reviewed.decision, 'force_ask');
+  const lowGate = new Gate(policy, { classify: async () => ({ ...safe,
+    safety: { choice: 'safe', probabilities: { safe: 0.79, caution: 0.11, dangerous: 0.06, destructive: 0.04 } },
+  }) });
+  const low = await handlePreToolUse(event('date', 'run_command', 135), {
+    config, authorize: request => lowGate.authorize(request),
+  });
+  assert.equal(low.decision, 'force_ask');
+});
+
 test('echo redirection reaches VETO review, while protected output remains blocked', async () => {
   const answer = {
     safety: { choice: 'caution', probabilities: { safe: 0.2, caution: 0.4, dangerous: 0.2, destructive: 0.2 } },

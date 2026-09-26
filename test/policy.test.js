@@ -97,6 +97,25 @@ test('bounded workspace writes require review even with a noisy destructive labe
   assert.equal(resolveAction({ ...request, ...write }, { ...policy, review_workspace_writes: false }, noisy).rule, 'classifier_block');
 });
 
+test('profiled commands use Laya safe probability and configured review rules', () => {
+  const file = { action: { ...request.action, name: 'file', arguments: ['src'], targets: ['src'] },
+    metadata: { category: 'other', general_command: true } };
+  assert.equal(decide(file, answer).rule, 'general_command_safe');
+  const borderline = { ...answer, safety: { choice: 'safe',
+    probabilities: { safe: 0.8, caution: 0.1, dangerous: 0.06, destructive: 0.04 } } };
+  assert.equal(decide(file, borderline).decision, 'ALLOW');
+  const low = { ...answer, safety: { choice: 'safe',
+    probabilities: { safe: 0.79, caution: 0.11, dangerous: 0.06, destructive: 0.04 } } };
+  assert.equal(decide(file, low).reason, 'manual_review');
+  assert.equal(decide({ ...file, action: { ...file.action, name: 'ifconfig', arguments: [], targets: ['.'] } }, answer).rule, 'command_requires_review');
+  assert.equal(decide({ ...file, action: { ...file.action, targets: ['protected/keep.txt'] } }, answer).rule, 'hard_restriction');
+  assert.equal(decide({ ...file, action: { ...file.action, name: 'node' } }, answer).rule, 'hard_restriction');
+  const extra = { ...file, action: { ...file.action, name: 'hostname', arguments: [], targets: ['.'] } };
+  const extended = { ...policy, allowed_executables: [...policy.allowed_executables, 'hostname'],
+    general_zero_arg_executables: [...policy.general_zero_arg_executables, 'hostname'] };
+  assert.equal(resolveAction({ ...request, ...extra }, extended, answer).rule, 'general_command_safe');
+});
+
 test('Windows protected paths are case-insensitive', () => {
   assert.equal(forbiddenTarget('.GIT/config', ['.git'], 'win32'), true);
   assert.equal(forbiddenTarget('sandbox/IMPORTANT_FILE.txt', ['sandbox'], 'win32'), true);

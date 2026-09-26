@@ -20,11 +20,12 @@ import { dirname, isAbsolute, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { callHookBridge } from './hook-bridge.js';
 import { evaluateHostVerdict } from './host-gate.js';
-import { actionFingerprint } from './contracts.js';
+import { actionFingerprint, loadPolicy } from './contracts.js';
 
 const CONFIG = fileURLToPath(new URL('../.local/antigravity-demo.json', import.meta.url));
 const PENDING = fileURLToPath(new URL('../.local/antigravity-pending', import.meta.url));
 const COMMANDS = new Set(['ls', 'cat', 'touch', 'rm', 'npm']);
+const POLICY = new URL('../config/policy.yaml', import.meta.url);
 const FILE_PATH_FIELD = {
   view_file: 'AbsolutePath',
   list_dir: 'DirectoryPath',
@@ -112,6 +113,22 @@ export function commandRequest(event, config) {
   }
   const tokens = line.trim().split(/\s+/);
   const name = tokens.shift();
+  const policy = loadPolicy(POLICY);
+  if (name === 'file' || policy.general_zero_arg_executables.includes(name)) {
+    const isFile = name === 'file';
+    if (isFile ? tokens.length !== 1 : tokens.length !== 0) {
+      throw new Error(`Unsupported ${name} arguments`);
+    }
+    if (isFile && tokens[0].startsWith('-')) throw new Error('file options are not supported');
+    const target = isFile ? tokens[0] : '.';
+    validateTarget(workspace, target, name);
+    return {
+      run_id: event.conversationId, request_id: requestId, goal: config.goal,
+      action: { kind: 'command', name, arguments: tokens, cwd: workspace,
+        targets: [target], raw_command: line },
+      metadata: { category: name === 'ifconfig' ? 'network' : 'other', general_command: true },
+    };
+  }
   if (!COMMANDS.has(name)) throw new Error('Command is outside the demo allowlist');
   if (name === 'npm') {
     if (tokens.length !== 1 || tokens[0] !== 'test') throw new Error('Only npm test is allowed');

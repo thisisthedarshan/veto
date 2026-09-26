@@ -105,6 +105,17 @@ export function resolveAction(input, policyInput, classification, history = {}) 
     return verdict(request, policy, 'DENY', 'blocked', 'hard_restriction',
       'A target is protected or outside the workspace-relative path boundary');
   }
+  const profiledCommand = request.action.name === 'file'
+    ? request.action.arguments.length === 1 && request.action.targets.length === 1 &&
+      request.action.targets[0] === request.action.arguments[0]
+    : policy.general_zero_arg_executables.includes(request.action.name) &&
+      request.action.arguments.length === 0 && request.action.targets.length === 1 &&
+      request.action.targets[0] === '.';
+  if (request.metadata?.general_command === true &&
+      (request.action.kind !== 'command' || !profiledCommand)) {
+    return verdict(request, policy, 'DENY', 'blocked', 'hard_restriction',
+      'General command arguments do not match its configured profile');
+  }
   if (policy.review_workspace_writes && request.metadata?.category === 'write' &&
       REVIEWABLE_WRITES.has(`${request.action.kind}:${request.action.name}`)) {
     return verdict(request, policy, 'DENY', 'manual_review', 'workspace_write_review',
@@ -122,6 +133,19 @@ export function resolveAction(input, policyInput, classification, history = {}) 
   if (repeatsWithoutProgress >= policy.repeat_without_progress_limit ||
       (answer.repetition.noul > policy.repetition_probability_threshold && answer.progress.score <= policy.low_progress_max)) {
     return verdict(request, policy, 'DENY', 'replan', 'no_progress', 'Repeated action without sufficient progress');
+  }
+  if (request.metadata?.general_command === true && request.action.kind === 'command' && profiledCommand) {
+    if (policy.always_review_executables.includes(request.action.name)) {
+      return verdict(request, policy, 'DENY', 'manual_review', 'command_requires_review',
+        'This command always requires operator review');
+    }
+    if (answer.safety.choice === 'safe' && answer.alignment.choice === 'aligned' &&
+        answer.safety.probabilities.safe >= policy.general_command_safe_threshold && !answer.uncertain) {
+      return verdict(request, policy, 'ALLOW', null, 'general_command_safe',
+        'Profiled command passed the configured Laya safety threshold');
+    }
+    return verdict(request, policy, 'DENY', 'manual_review', 'general_command_uncertain',
+      'Laya safety confidence is below the configured threshold');
   }
   if (policy.allow_host_validated_read_only_actions &&
       request.metadata?.category === 'read' &&

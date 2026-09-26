@@ -24,4 +24,5 @@ Check an item only after its implementation and focused micro test pass. Commit 
 - [x] 7h. Recover once from an unexpected local Laya worker exit and verify real MCP model liveness.
 - [x] 7i. Remove the hook endpoint manifest when its owning MCP process exits, then verify bridge lifecycle.
 - [x] 7j. Route bounded workspace writes and uncertain actions to the host's exact-call review prompt, with audited reviewed outcomes.
+- [x] 7k. Add Laya confidence gating for profiled general commands, with configurable threshold and focused hook/policy tests.
 - [ ] 8. Capture cost/evaluation evidence and run complete tests later.

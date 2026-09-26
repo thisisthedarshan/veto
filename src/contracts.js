@@ -23,6 +23,8 @@ const POLICY_KEYS = new Set([
   'repetition_probability_threshold', 'low_progress_max',
   'minimum_choice_margin', 'manual_review_categories',
   'allow_host_validated_read_only_actions', 'review_workspace_writes',
+  'general_command_safe_threshold', 'always_review_executables',
+  'general_zero_arg_executables',
 ]);
 const CATEGORIES = new Set(['read', 'write', 'delete', 'build', 'test', 'network', 'other']);
 
@@ -129,6 +131,14 @@ export function validatePolicy(policy) {
   stringArray(policy.allowed_executables, 'allowed_executables');
   stringArray(policy.protected_paths, 'protected_paths');
   stringArray(policy.manual_review_categories, 'manual_review_categories');
+  stringArray(policy.always_review_executables, 'always_review_executables');
+  stringArray(policy.general_zero_arg_executables, 'general_zero_arg_executables');
+  if (policy.general_zero_arg_executables.some(name => !policy.allowed_executables.includes(name))) {
+    throw new TypeError('general_zero_arg_executables must be allowed_executables');
+  }
+  if (policy.always_review_executables.some(name => !policy.allowed_executables.includes(name))) {
+    throw new TypeError('always_review_executables must be allowed_executables');
+  }
   if (typeof policy.allow_host_validated_read_only_actions !== 'boolean') {
     throw new TypeError('allow_host_validated_read_only_actions must be boolean');
   }
@@ -138,7 +148,7 @@ export function validatePolicy(policy) {
   for (const key of ['max_actions_per_run', 'max_replans_without_progress', 'repeat_without_progress_limit']) {
     if (!Number.isSafeInteger(policy[key]) || policy[key] < 1) throw new TypeError(`${key} must be a positive integer`);
   }
-  for (const key of ['repetition_probability_threshold', 'low_progress_max', 'minimum_choice_margin']) {
+  for (const key of ['repetition_probability_threshold', 'low_progress_max', 'minimum_choice_margin', 'general_command_safe_threshold']) {
     if (!Number.isFinite(policy[key]) || policy[key] < 0 || policy[key] > 1) throw new TypeError(`${key} must be in [0,1]`);
   }
   return Object.freeze(policy);
