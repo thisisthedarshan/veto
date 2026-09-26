@@ -15,10 +15,19 @@
  */
 
 import { createInterface } from 'node:readline';
+import { existsSync, writeFileSync } from 'node:fs';
 
 for await (const line of createInterface({ input: process.stdin })) {
   const request = JSON.parse(line);
   if (request.state.trusted_goal === 'hang') continue;
+  if (request.state.trusted_goal === 'always-crash') process.exit(24);
+  if (request.state.trusted_goal.startsWith('crash-once:')) {
+    const marker = request.state.trusted_goal.slice('crash-once:'.length);
+    if (!existsSync(marker)) {
+      writeFileSync(marker, 'crashed');
+      process.exit(23);
+    }
+  }
   process.stdout.write(`${JSON.stringify({
     id: request.id,
     result: { answers: {

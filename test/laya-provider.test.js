@@ -17,6 +17,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { fileURLToPath } from 'node:url';
+import { mkdtempSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { decisionState, LayaProvider, normalizeLayaResult, QUESTION_VERSION } from '../src/laya-provider.js';
 
 const request = { run_id: 'r', request_id: 'a', goal: 'Inspect files', action: { kind: 'command', name: 'ls', arguments: [], cwd: '/demo', targets: ['src'] }, metadata: { category: 'read' } };
@@ -44,5 +47,22 @@ test('direct worker timeout rejects the action', async () => {
   const provider = new LayaProvider({ python: process.execPath, worker: fileURLToPath(new URL('./fixtures/laya-stub.js', import.meta.url)), timeoutMs: 150 });
   try {
     await assert.rejects(provider.classify({ ...snapshot, request: { ...request, goal: 'hang' } }), /timed out/);
+  } finally { provider.close(); }
+});
+
+test('one unexpected worker exit is retried in the same authorization', async () => {
+  const provider = new LayaProvider({ python: process.execPath, worker: fileURLToPath(new URL('./fixtures/laya-stub.js', import.meta.url)), timeoutMs: 2000 });
+  const marker = join(mkdtempSync(join(tmpdir(), 'veto-worker-')), 'first-crash');
+  try {
+    const result = await provider.classify({ ...snapshot, request: { ...request, goal: `crash-once:${marker}` } });
+    assert.equal(result.safety.choice, 'safe');
+    assert.equal((await provider.classify(snapshot)).alignment.choice, 'aligned');
+  } finally { provider.close(); }
+});
+
+test('persistent worker failure stops after one retry', async () => {
+  const provider = new LayaProvider({ python: process.execPath, worker: fileURLToPath(new URL('./fixtures/laya-stub.js', import.meta.url)), timeoutMs: 2000 });
+  try {
+    await assert.rejects(provider.classify({ ...snapshot, request: { ...request, goal: 'always-crash' } }), /Laya worker exited/);
   } finally { provider.close(); }
 });

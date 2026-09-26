@@ -86,24 +86,39 @@ export class LayaProvider {
   #nextId = 1;
   #pending = new Map();
   #closed = false;
+  #disposed = false;
 
   constructor({ python = fileURLToPath(new URL(process.platform === 'win32' ? '../.local/venv/Scripts/python.exe' : '../.local/venv/bin/python', import.meta.url)),
                 worker = fileURLToPath(new URL('./laya_worker.py', import.meta.url)), timeoutMs = 600000 } = {}) {
     this.timeoutMs = timeoutMs;
-    const env = Object.fromEntries([
+    this.python = python;
+    this.worker = worker;
+    this.env = Object.fromEntries([
       'PATH', 'HOME', 'LANG', 'TMPDIR', 'SYSTEMROOT', 'WINDIR', 'COMSPEC', 'PATHEXT',
       'TEMP', 'TMP', 'USERPROFILE', 'APPDATA', 'LOCALAPPDATA',
     ].filter(key => process.env[key]).map(key => [key, process.env[key]]));
-    this.#child = spawn(python, [worker], { stdio: ['pipe', 'pipe', 'pipe'], env });
-    this.#child.stdout.setEncoding('utf8');
-    this.#child.stdout.on('data', chunk => this.#receive(chunk));
-    this.#child.stderr.on('data', chunk => process.stderr.write(`[veto:laya] ${chunk}`));
-    this.#child.on('error', error => this.#fail(error));
-    this.#child.on('exit', (code, signal) => this.#fail(new Error(`Laya worker exited: ${code ?? signal}`)));
+    this.#start();
   }
 
-  #fail(error) {
+  #start() {
+    if (this.#disposed) throw new Error('Laya worker closed');
+    this.#buffer = '';
+    this.#closed = false;
+    const child = spawn(this.python, [this.worker], { stdio: ['pipe', 'pipe', 'pipe'], env: this.env });
+    this.#child = child;
+    child.stdout.setEncoding('utf8');
+    child.stdout.on('data', chunk => { if (this.#child === child) this.#receive(chunk); });
+    child.stderr.on('data', chunk => process.stderr.write(`[veto:laya] ${chunk}`));
+    child.stdin.on('error', error => this.#fail(error, child));
+    child.on('error', error => this.#fail(error, child));
+    child.on('exit', (code, signal) => this.#fail(new Error(`Laya worker exited: ${code ?? signal}`), child));
+  }
+
+  #fail(error, child = this.#child) {
+    if (child !== this.#child || this.#closed) return;
     this.#closed = true;
+    error.workerFailed = true;
+    if (!this.#disposed) process.stderr.write(`[veto:laya] ${error.message}\n`);
     for (const pending of this.#pending.values()) {
       clearTimeout(pending.timer);
       pending.reject(error);
@@ -115,7 +130,7 @@ export class LayaProvider {
     this.#buffer += chunk;
     if (this.#buffer.length > 1024 * 1024) {
       this.#fail(new Error('Laya worker response too large'));
-      this.close();
+      this.#child.kill();
       return;
     }
     while (this.#buffer.includes('\n')) {
@@ -124,7 +139,7 @@ export class LayaProvider {
       this.#buffer = this.#buffer.slice(position + 1);
       let response;
       try { response = JSON.parse(line); }
-      catch { this.#fail(new Error('Malformed Laya worker response')); this.close(); return; }
+      catch { this.#fail(new Error('Malformed Laya worker response')); this.#child.kill(); return; }
       const pending = this.#pending.get(response.id);
       if (!pending) continue;
       clearTimeout(pending.timer);
@@ -137,22 +152,36 @@ export class LayaProvider {
     }
   }
 
-  classify(snapshot) {
-    if (this.#closed) return Promise.reject(new Error('Laya worker closed'));
+  #send(snapshot) {
+    if (this.#closed) this.#start();
     const id = this.#nextId++;
     const request = { id, model: 'english', state: decisionState(snapshot), questions: QUESTIONS };
     return new Promise((resolve, reject) => {
       const timer = setTimeout(() => {
-        this.#pending.delete(id);
-        reject(new Error('Laya model timed out'));
-        this.close();
+        const error = new Error('Laya model timed out');
+        this.#fail(error);
+        this.#child.kill();
       }, this.timeoutMs);
       this.#pending.set(id, { resolve, reject, timer });
-      this.#child.stdin.write(`${JSON.stringify(request)}\n`);
+      const child = this.#child;
+      child.stdin.write(`${JSON.stringify(request)}\n`, error => {
+        if (error) this.#fail(error, child);
+      });
     });
   }
 
+  async classify(snapshot) {
+    if (this.#disposed) throw new Error('Laya worker closed');
+    try { return await this.#send(snapshot); }
+    catch (error) {
+      if (!error.workerFailed || error.message === 'Laya model timed out' || this.#disposed) throw error;
+      process.stderr.write('[veto:laya] restarting worker after failure\n');
+      return this.#send(snapshot);
+    }
+  }
+
   close() {
+    this.#disposed = true;
     if (!this.#closed) this.#fail(new Error('Laya worker closed'));
     if (!this.#child.killed) {
       this.#child.stdin.end();
