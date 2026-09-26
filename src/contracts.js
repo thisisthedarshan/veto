@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 
 const POLICY_KEYS = new Set([
-  'version', 'allowed_kinds', 'protected_paths', 'max_actions_per_run',
+  'version', 'allowed_kinds', 'allowed_executables', 'protected_paths', 'max_actions_per_run',
   'max_replans_without_progress', 'repeat_without_progress_limit',
   'repetition_probability_threshold', 'low_progress_max',
   'minimum_choice_margin', 'manual_review_categories',
@@ -87,6 +87,7 @@ export function validatePolicy(policy) {
   for (const key of POLICY_KEYS) if (!(key in policy)) throw new TypeError(`missing policy key: ${key}`);
   string(policy.version, 'version');
   stringArray(policy.allowed_kinds, 'allowed_kinds');
+  stringArray(policy.allowed_executables, 'allowed_executables');
   stringArray(policy.protected_paths, 'protected_paths');
   stringArray(policy.manual_review_categories, 'manual_review_categories');
   for (const key of ['max_actions_per_run', 'max_replans_without_progress', 'repeat_without_progress_limit']) {

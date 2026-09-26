@@ -1,6 +1,7 @@
 # VETO demo defaults. Paths are relative to the host's isolated workspace.
 version: "veto-policy-v1"
 allowed_kinds: ["command"]
+allowed_executables: ["ls", "cat", "sed", "touch", "rm", "npm", "node"]
 protected_paths: [".git", ".env", "protected"]
 max_actions_per_run: 100
 max_replans_without_progress: 2

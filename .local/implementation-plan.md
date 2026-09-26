@@ -5,13 +5,13 @@ The tracked `docs/` architecture is the build contract. The older local PRD desc
 ## Phase 0 — contracts and policy decisions
 
 - [x] Define the exact authorization/result shapes, fingerprint rules, policy configuration, and initial safety defaults.
-- [ ] Record resolved policy choices and unresolved Laya/host prerequisites.
+- [x] Record resolved policy choices and unresolved Laya/host prerequisites.
 
 Gate: fixed requests and policy settings have deterministic, documented meaning.
 
 ## Phase 1 — decision core
 
-- [ ] Implement request validation, canonical action fingerprinting, hard restrictions, and policy resolution.
+- [x] Implement request validation, canonical action fingerprinting, hard restrictions, and policy resolution.
 - [ ] Implement run history, repetition/result accounting, and append-only decisions.
 - [ ] Add focused micro tests for every critical branch and fail-closed behavior.
 
