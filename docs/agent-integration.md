@@ -1,6 +1,6 @@
 # Set up VETO in a coding agent
 
-VETO is a local stdio MCP server that evaluates proposed tool actions. Clone [github.com/thisisthedarshann/veto](https://github.com/thisisthedarshann/veto). The repository is private today, so clone access is required until publication. VETO runs Laya's model directly from a local Python worker; no Laya MCP server is used.
+VETO is a local stdio MCP server that evaluates proposed tool actions. Clone the public [VETO repository](https://github.com/thisisthedarshann/veto). VETO runs Laya's model directly from a local Python worker; no Laya MCP server is used.
 
 ## Install the clone
 

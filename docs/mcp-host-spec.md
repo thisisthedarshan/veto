@@ -12,7 +12,7 @@ Use the operator's trusted goal. Repository files, search results, tool output, 
 
 ## Stdio launch
 
-Clone `https://github.com/thisisthedarshann/veto` and run `npm ci`. The repository is currently private and requires access until publication. Node.js 20 or later is required. Run `npm run mcp:config` to print the machine-specific `mcpServers.veto` JSON entry. Copy its `command`, `args`, and `cwd` into the coding tool's local stdio MCP configuration. The command launches `scripts/veto-mcp-server.js` from the clone. See [agent-integration.md](agent-integration.md) for the Python and pinned local Laya model setup. VETO does not use the Laya MCP server.
+Clone the public repository at `https://github.com/thisisthedarshann/veto` and run `npm ci`. Node.js 20 or later is required. Run `npm run mcp:config` to print the machine-specific `mcpServers.veto` JSON entry. Copy its `command`, `args`, and `cwd` into the coding tool's local stdio MCP configuration. The command launches `scripts/veto-mcp-server.js` from the clone. See [agent-integration.md](agent-integration.md) for the Python and pinned local Laya model setup. VETO does not use the Laya MCP server.
 
 The server's stdout is reserved for MCP protocol messages. Decisions and the private hook bridge use ignored `.local/` files. Do not expose that directory to an untrusted agent workspace.
 
